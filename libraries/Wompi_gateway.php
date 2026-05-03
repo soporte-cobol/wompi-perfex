@@ -304,7 +304,4 @@ class Wompi_gateway extends App_gateway
         <?php
         echo payment_gateway_footer();
     }
-        <?php
-        echo payment_gateway_footer();
-    }
 }

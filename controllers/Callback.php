@@ -188,7 +188,7 @@ class Callback extends App_Controller
      * @param  string $transaction_id
      * @return array|null
      */
-    private function _fetch_transaction(string $transaction_id): ?array
+    private function _fetch_transaction($transaction_id)
     {
         $is_sandbox = $this->wompi_gateway->getSetting('test_mode') === '1';
         $base_url   = $is_sandbox ? self::API_SANDBOX : self::API_PRODUCTION;
@@ -221,7 +221,7 @@ class Callback extends App_Controller
      * @param  array $payload Decoded JSON payload
      * @return bool
      */
-    private function _verify_webhook_signature(array $payload): bool
+    private function _verify_webhook_signature($payload)
     {
         $checksum   = $payload['signature']['checksum']   ?? '';
         $properties = $payload['signature']['properties'] ?? [];
@@ -261,7 +261,7 @@ class Callback extends App_Controller
      * @param  string $transaction_id
      * @return bool
      */
-    private function _payment_exists(string $transaction_id): bool
+    private function _payment_exists($transaction_id)
     {
         $CI = &get_instance();
         $CI->db->where('transactionid', $transaction_id);
@@ -274,7 +274,7 @@ class Callback extends App_Controller
      *
      * @param array $data View variables
      */
-    private function _render_result(array $data): void
+    private function _render_result($data)
     {
         extract($data);
         include(module_dir_path(WOMPI_MODULE_NAME, 'views/payment_result.php'));

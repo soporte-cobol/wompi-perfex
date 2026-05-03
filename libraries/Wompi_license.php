@@ -28,7 +28,7 @@ class Wompi_license
     private const VALID_STATUSES = ['Active'];
 
     /** @var string|null Cached license key for current request */
-    private ?string $license_key = null;
+    private $license_key = null;
 
     // -------------------------------------------------------------------------
     // PUBLIC API
@@ -40,7 +40,7 @@ class Wompi_license
      *
      * @return bool
      */
-    public function isValid(): bool
+    public function isValid()
     {
         $key = $this->getLicenseKey();
 
@@ -66,7 +66,7 @@ class Wompi_license
      *
      * @return string
      */
-    public function getStatus(): string
+    public function getStatus()
     {
         $cached = $this->_getCached();
         if ($cached !== null) {
@@ -88,7 +88,7 @@ class Wompi_license
      *
      * @return string
      */
-    public function getExpiryDate(): string
+    public function getExpiryDate()
     {
         $cached = $this->_getCached();
         return $cached['expiry_date'] ?? '';
@@ -99,7 +99,7 @@ class Wompi_license
      *
      * @return string
      */
-    public function getRegisteredName(): string
+    public function getRegisteredName()
     {
         $cached = $this->_getCached();
         return $cached['registered_name'] ?? '';
@@ -110,7 +110,7 @@ class Wompi_license
      *
      * @return bool
      */
-    public function revalidate(): bool
+    public function revalidate()
     {
         $this->_clearCache();
         return $this->isValid();
@@ -121,7 +121,7 @@ class Wompi_license
      *
      * @return string
      */
-    public function getLicenseKey(): string
+    public function getLicenseKey()
     {
         if ($this->license_key === null) {
             $this->license_key = trim(get_option('paymentmethod_wompi_license_key') ?? '');
@@ -139,7 +139,7 @@ class Wompi_license
      * @param  string $license_key
      * @return array  { valid: bool, status: string, expiry_date: string, registered_name: string }
      */
-    private function _verify(string $license_key): array
+    private function _verify($license_key)
     {
         $domain    = $_SERVER['HTTP_HOST']   ?? 'unknown';
         // Normalize domain: remove port and www.
@@ -228,7 +228,7 @@ class Wompi_license
      * @param  string $reason
      * @return array
      */
-    private function _failResult(string $reason): array
+    private function _failResult($reason)
     {
         return [
             'valid'           => false,
@@ -244,7 +244,7 @@ class Wompi_license
      *
      * @return array|null
      */
-    private function _getCached(): ?array
+    private function _getCached()
     {
         $cached_at = (int) get_option(self::OPT_PREFIX . 'cached_at');
 
@@ -266,7 +266,7 @@ class Wompi_license
      *
      * @param array $result
      */
-    private function _cache(array $result): void
+    private function _cache($result)
     {
         update_option(self::OPT_PREFIX . 'data',      json_encode($result));
         update_option(self::OPT_PREFIX . 'cached_at', time());
@@ -275,7 +275,7 @@ class Wompi_license
     /**
      * Clear the cached license data, forcing a fresh WHMCS check.
      */
-    private function _clearCache(): void
+    private function _clearCache()
     {
         update_option(self::OPT_PREFIX . 'data',      '');
         update_option(self::OPT_PREFIX . 'cached_at', 0);

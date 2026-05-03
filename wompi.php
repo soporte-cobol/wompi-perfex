@@ -119,7 +119,7 @@ function wompi_maybe_request_trial()
 /**
  * Check license validity (cached for 24h).
  */
-function wompi_license_valid(): bool
+function wompi_license_valid()
 {
     static $result = null;
 
