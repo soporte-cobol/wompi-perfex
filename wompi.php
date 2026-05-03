@@ -230,6 +230,9 @@ function wompi_license_admin_notice()
 /**
  * Client and Admin area: UI logic for Wompi.
  */
+// Perfex >= 2.3 uses app_customers_footer() which triggers the 'app_customers_footer' hook.
+// Some older installs/themes may still fire 'app_clients_area_footer', so we support both.
+hooks()->add_action('app_customers_footer', 'wompi_ui_scripts');
 hooks()->add_action('app_clients_area_footer', 'wompi_ui_scripts');
 hooks()->add_action('admin_footer', 'wompi_ui_scripts');
 
@@ -343,6 +346,18 @@ function wompi_ui_scripts()
             // Also support the concrete id used in your HTML.
             var byId = document.getElementById('pm_wompi');
             if (byId && byId.checked) return true;
+            // If it's the ONLY online payment option and it's Wompi, treat it as selected even if
+            // the theme auto-check happens after our script runs.
+            if (byId && String(byId.value).toLowerCase() === 'wompi') {
+                var form = findPaymentForm();
+                if (form) {
+                    var wompiRadios = form.querySelectorAll('input[type="radio"][value="wompi"]');
+                    var allRadios   = form.querySelectorAll('input[type="radio"]');
+                    if (wompiRadios.length === 1 && allRadios.length === 1) {
+                        return true;
+                    }
+                }
+            }
 
             // Some templates use selects
             var select =
@@ -455,6 +470,17 @@ function wompi_ui_scripts()
 
         function init() {
             bindModeChanges();
+
+            // Mirror Perfex behavior: if there's exactly 1 payment option and it's Wompi, force-check it.
+            // This avoids timing issues with jQuery themes that check it later.
+            var form = findPaymentForm();
+            if (form) {
+                var onlyRadio = form.querySelectorAll('input[type="radio"]');
+                if (onlyRadio.length === 1 && String(onlyRadio[0].value).toLowerCase() === 'wompi') {
+                    onlyRadio[0].checked = true;
+                }
+            }
+
             toggleSimpleWidget();
 
             // Some themes manipulate DOM after load; keep it in sync briefly.
