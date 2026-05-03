@@ -31,11 +31,13 @@ class Wompi_gateway extends App_gateway
                 'encrypted' => true,
             ],
             [
+                // Wompi "integrity secret" used to sign the checkout widget.
                 'name'      => 'integrity_secret',
                 'label'     => 'settings_paymentmethod_wompi_integrity_secret',
                 'encrypted' => true,
             ],
             [
+                // Wompi events/webhooks secret for signature verification.
                 'name'      => 'events_secret',
                 'label'     => 'settings_paymentmethod_wompi_events_secret',
                 'encrypted' => true,
@@ -63,8 +65,7 @@ class Wompi_gateway extends App_gateway
 
     public function process_payment($data)
     {
-        // Customer UX is intentionally kept on the invoice page (simple widget button + modal).
-        // If Perfex posts here anyway, we just redirect back to the invoice.
+        // UX is kept on the invoice page (official widget button + modal).
         $invoice = $data['invoice'];
 
         if (!function_exists('wompi_license_valid') || !wompi_license_valid()) {
