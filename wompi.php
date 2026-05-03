@@ -340,6 +340,10 @@ function wompi_ui_scripts()
             var radio2 = document.querySelector('input[type="radio"][name="paymentmode"][value="wompi"]:checked');
             if (radio2) return true;
 
+            // Also support the concrete id used in your HTML.
+            var byId = document.getElementById('pm_wompi');
+            if (byId && byId.checked) return true;
+
             // Some templates use selects
             var select =
                 document.querySelector('select[name="payment_mode"]') ||
@@ -358,7 +362,7 @@ function wompi_ui_scripts()
             if (!form || !container) return;
 
             // Replace the original Perfex submit button in-place (same location in the DOM).
-            var submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+            var submitBtn = form.querySelector('#pay_now, button[type="submit"], input[type="submit"]');
             var payButtonWrap = document.getElementById('pay_button');
             if (submitBtn) {
                 // Prefer inserting where Perfex renders the pay button.
@@ -460,6 +464,10 @@ function wompi_ui_scripts()
                 tries++;
                 if (tries >= 10) clearInterval(iv);
             }, 300);
+
+            // Some Perfex themes auto-check the only payment method after DOM ready.
+            // Watch for that and re-toggle once the radio state changes.
+            setTimeout(toggleSimpleWidget, 1200);
         }
 
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
