@@ -692,6 +692,23 @@ function wompi_ui_scripts()
             // Watch for that and re-toggle once the radio state changes.
             setTimeout(toggleSimpleWidget, 1200);
             setTimeout(wompiStripTrailingZeros, 1200);
+
+            // Perfex can update invoice totals/items after initial paint (both admin and customer views).
+            // Observe the DOM briefly and re-apply cosmetic stripping when text changes.
+            try {
+                var start = Date.now();
+                var obs = new MutationObserver(function() {
+                    if (Date.now() - start > 10000) {
+                        obs.disconnect();
+                        return;
+                    }
+                    wompiStripTrailingZeros();
+                });
+                if (document.body) {
+                    obs.observe(document.body, { subtree: true, childList: true, characterData: true });
+                    setTimeout(function() { try { obs.disconnect(); } catch (e) {} }, 10000);
+                }
+            } catch (e) {}
         }
 
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
