@@ -29,6 +29,12 @@ class Wompi_license
 
     /** @var string|null Cached license key for current request */
     private $license_key = null;
+    /** @var string|null Raw last response for debugging */
+    private $last_raw = null;
+    /** @var int|null HTTP code of last verification call */
+    private $last_http_code = null;
+    /** @var string|null cURL error of last verification call */
+    private $last_curl_err = null;
 
     // -------------------------------------------------------------------------
     // PUBLIC API
@@ -81,6 +87,19 @@ class Wompi_license
         $result = $this->_verify($key);
         $this->_cache($result);
         return $result['status'] ?? 'Unknown';
+    }
+
+    /**
+     * Return last verification transport info (safe for admin UI).
+     *
+     * @return array { http_code: int|null, curl_err: string|null }
+     */
+    public function getLastTransportInfo()
+    {
+        return [
+            'http_code' => $this->last_http_code,
+            'curl_err'  => $this->last_curl_err,
+        ];
     }
 
     /**
@@ -225,6 +244,10 @@ class Wompi_license
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curl_err  = curl_error($ch);
         curl_close($ch);
+
+        $this->last_raw       = $raw;
+        $this->last_http_code = $http_code;
+        $this->last_curl_err  = $curl_err;
 
         if ($curl_err || $http_code !== 200 || empty($raw)) {
             log_message('error', '[Wompi License] WHMCS API call failed. HTTP ' . $http_code . ' — ' . $curl_err);

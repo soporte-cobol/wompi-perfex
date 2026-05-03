@@ -199,13 +199,17 @@ function wompi_license_admin_notice()
         $CI->load->library('wompi/Wompi_license');
         $status = $CI->wompi_license->getStatus();
         $ctx    = $CI->wompi_license->getVerifyContext();
+        $tx     = $CI->wompi_license->getLastTransportInfo();
         echo '<div class="alert alert-warning alert-dismissible wompi-admin-notice">'
             . '<button type="button" class="close" data-dismiss="alert">&times;</button>'
             . '⚠️ La licencia de <strong>Wompi Payment Gateway</strong> es inválida o ha expirado. '
             . 'Estado: <strong>' . htmlspecialchars($status, ENT_QUOTES, 'UTF-8') . '</strong>. '
             . '<br><small>Validando como Domain=' . htmlspecialchars($ctx['domain'], ENT_QUOTES, 'UTF-8')
             . ' IP=' . htmlspecialchars($ctx['ip'], ENT_QUOTES, 'UTF-8')
-            . ' Dir=' . htmlspecialchars($ctx['dir'], ENT_QUOTES, 'UTF-8') . '</small> '
+            . ' Dir=' . htmlspecialchars($ctx['dir'], ENT_QUOTES, 'UTF-8')
+            . ' HTTP=' . htmlspecialchars((string) ($tx['http_code'] ?? ''), ENT_QUOTES, 'UTF-8')
+            . (!empty($tx['curl_err']) ? ' cURL=' . htmlspecialchars($tx['curl_err'], ENT_QUOTES, 'UTF-8') : '')
+            . '</small> '
             . '<a href="https://control.cobol.com.co/index.php?rp=/store/contenidos/wompi-perfex" target="_blank">Renueva aquí</a>.'
             . '</div>';
     }
