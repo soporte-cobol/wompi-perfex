@@ -257,45 +257,63 @@ class Wompi_gateway extends App_gateway
                 </div>
             </div>
             
-            <button id="fallback-btn" class="btn-wompi-fallback" onclick="openWompi()">Pagar Ahora</button>
+            <button id="fallback-btn" class="btn-wompi-fallback" style="display:none;" onclick="location.reload()">Reintentar Conexión</button>
         </div>
 
         <script src="https://checkout.wompi.co/widget.js"></script>
         <script>
-            var checkout = new WompiCheckout({
-                publicKey: "<?php echo $public_key; ?>",
-                currency: "<?php echo $currency; ?>",
-                amountInCents: <?php echo $amount_in_cents; ?>,
-                reference: "<?php echo $reference; ?>",
-                signature: "<?php echo $signature; ?>",
-                redirectUrl: "<?php echo $redirect_url; ?>",
-                customerData: {
-                    invoice_id: "<?php echo $data['invoiceid']; ?>",
-                    hash: "<?php echo $invoice->hash; ?>"
-                }
-            });
+            var checkout;
+            var opened = false;
 
-            function openWompi() {
-                checkout.open(function ( result ) {
-                    var transaction = result.transaction;
-                    if (transaction.status === 'APPROVED' || transaction.status === 'DECLINED' || transaction.status === 'VOIDED') {
-                        window.location.href = "<?php echo $redirect_url; ?>?id=" + transaction.id;
-                    }
-                });
+            function initAndOpen() {
+                if (typeof WompiCheckout === 'undefined') return false;
+                if (opened) return true;
+
+                try {
+                    checkout = new WompiCheckout({
+                        publicKey: "<?php echo $public_key; ?>",
+                        currency: "<?php echo $currency; ?>",
+                        amountInCents: <?php echo $amount_in_cents; ?>,
+                        reference: "<?php echo $reference; ?>",
+                        signature: "<?php echo $signature; ?>",
+                        redirectUrl: "<?php echo $redirect_url; ?>",
+                        customerData: {
+                            invoice_id: "<?php echo $data['invoiceid']; ?>",
+                            hash: "<?php echo $invoice->hash; ?>"
+                        }
+                    });
+
+                    checkout.open(function ( result ) {
+                        var transaction = result.transaction;
+                        if (transaction.status === 'APPROVED' || transaction.status === 'DECLINED' || transaction.status === 'VOIDED') {
+                            window.location.href = "<?php echo $redirect_url; ?>?id=" + transaction.id;
+                        }
+                    });
+                    opened = true;
+                    return true;
+                } catch (e) {
+                    console.error("Wompi Init Error:", e);
+                    return false;
+                }
             }
 
-            // Abrir automáticamente al cargar
-            window.onload = function() {
-                setTimeout(function() {
-                    openWompi();
-                    // Si después de 3 segundos no se abrió, mostrar botón de respaldo
-                    setTimeout(function() {
-                        if (!document.querySelector('.wompi-widget-container')) {
-                            document.getElementById('fallback-btn').style.display = 'inline-block';
-                        }
-                    }, 3000);
-                }, 500);
-            };
+            // Reintento agresivo cada 500ms
+            var checkInterval = setInterval(function() {
+                if (initAndOpen()) {
+                    clearInterval(checkInterval);
+                }
+            }, 500);
+
+            // Tiempo límite de 10 segundos
+            setTimeout(function() {
+                clearInterval(checkInterval);
+                if (!opened) {
+                    document.querySelector('.status-msg').innerText = 'Error de Conexión';
+                    document.querySelector('.status-sub').innerText = 'No se pudo conectar con Wompi. Por favor revisa tu conexión.';
+                    document.getElementById('fallback-btn').style.display = 'inline-block';
+                    document.querySelector('.loader-wrapper').style.display = 'none';
+                }
+            }, 10000);
         </script>
         <?php
         echo payment_gateway_footer();

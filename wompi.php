@@ -234,45 +234,36 @@ function wompi_client_area_scripts()
     <script>
     (function() {
         'use strict';
-        function initWompiUI() {
-            var modeRadios  = document.querySelectorAll('input[name="payment_mode"]');
-            if (!modeRadios.length) return;
+        function applyWompiUI() {
+            var selectedMode = document.querySelector('input[name="payment_mode"]:checked');
+            var isWompi = selectedMode && selectedMode.value === 'wompi';
+            var allowPartial = <?php echo (get_option('paymentmethod_wompi_allow_partial_payments') == '1') ? 'true' : 'false'; ?>;
 
-            var allowPartial = <?php echo ($allow_partial == '1') ? 'true' : 'false'; ?>;
-            
-            function applyUI() {
-                var sel     = document.querySelector('input[name="payment_mode"]:checked');
-                var isWompi = sel && sel.value === 'wompi';
-                
-                // Selector más robusto: busca por ID y por nombre
-                var amountInput = document.querySelector('#payment_amount') || document.querySelector('input[name="amount"]');
-                if (amountInput) {
-                    var amountRow = amountInput.closest('.form-group, .col-md-12, .row, tr, .form-item');
-                    if (amountRow) {
-                        if (isWompi && !allowPartial) {
-                            amountRow.style.setProperty('display', 'none', 'important');
-                        } else {
-                            amountRow.style.display = '';
-                        }
+            // 1. Ocultar el campo de monto si no se permiten pagos parciales
+            var amountInput = document.querySelector('#payment_amount') || document.querySelector('input[name="amount"]');
+            if (amountInput) {
+                var amountRow = amountInput.closest('.form-group, .col-md-12, .row, tr, .form-item');
+                if (amountRow) {
+                    if (isWompi && !allowPartial) {
+                        amountRow.style.setProperty('display', 'none', 'important');
+                    } else {
+                        amountRow.style.display = '';
                     }
                 }
             }
 
-            modeRadios.forEach(function(r) { r.addEventListener('change', applyUI); });
-            
-            // Observar cambios en el DOM por si Perfex recarga la sección de pagos vía AJAX
-            var observer = new MutationObserver(applyUI);
-            var target = document.querySelector('#online_payment_form') || document.body;
-            observer.observe(target, { childList: true, subtree: true });
-
-            applyUI();
+            // 2. Mejorar el texto del botón de pago
+            var submitBtn = document.querySelector('#online_payment_form button[type="submit"], .pay-now-btn');
+            if (submitBtn && isWompi) {
+                if (!submitBtn.dataset.originalText) submitBtn.dataset.originalText = submitBtn.innerText;
+                submitBtn.innerText = 'Pagar con Wompi 💳';
+            } else if (submitBtn && submitBtn.dataset.originalText) {
+                submitBtn.innerText = submitBtn.dataset.originalText;
+            }
         }
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initWompiUI);
-        } else {
-            initWompiUI();
-        }
+        setInterval(applyWompiUI, 500);
+        applyWompiUI();
     })();
     </script>
     <?php
