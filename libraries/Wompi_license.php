@@ -259,21 +259,35 @@ class Wompi_license
             return $this->_failResult('Connection Error');
         }
 
-        // WHMCS can respond with JSON (v8+) or serialized PHP (older)
+        // WHMCS can respond with:
+        // - JSON (some setups)
+        // - serialized PHP array (older)
+        // - XML (common for License Manager / verify.php)
         $data = json_decode($raw, true);
-        if ($data === null) {
+        if (!is_array($data)) {
             $data = @unserialize($raw);
         }
 
         if (!is_array($data)) {
-            log_message('error', '[Wompi License] Invalid response format: ' . substr($raw, 0, 100));
-            return $this->_failResult('Invalid Response');
+            $xml = null;
+            if (function_exists('simplexml_load_string')) {
+                $xml = @simplexml_load_string($raw);
+            }
+            if ($xml instanceof SimpleXMLElement) {
+                $status = (string) ($xml->status ?? 'Invalid');
+                $expiry_date = (string) ($xml->expirydate ?? '');
+                $registered_name = (string) ($xml->registeredname ?? ($xml->companyname ?? ''));
+                $md5hash = (string) ($xml->md5hash ?? '');
+            } else {
+                log_message('error', '[Wompi License] Invalid response format: ' . substr($raw, 0, 100));
+                return $this->_failResult('Invalid Response');
+            }
+        } else {
+            $status          = $data['status']          ?? 'Invalid';
+            $expiry_date     = $data['expirydate']      ?? '';
+            $registered_name = $data['registeredname']  ?? ($data['companyname'] ?? '');
+            $md5hash         = $data['md5hash']         ?? '';
         }
-
-        $status         = $data['status']          ?? 'Invalid';
-        $expiry_date    = $data['expirydate']       ?? '';
-        $registered_name = $data['registeredname'] ?? ($data['companyname'] ?? '');
-        $md5hash        = $data['md5hash']          ?? '';
 
         // Verify the response hash against the WHMCS Secret Key
         $whmcs_secret_key = 'wmp_secret_2024_cobol'; 
