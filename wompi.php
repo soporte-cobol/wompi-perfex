@@ -130,7 +130,7 @@ function wompi_license_valid()
     }
 
     $CI = &get_instance();
-    $CI->load->library('wompi/wompi_license'); // file: libraries/wompi_license.php, class: Wompi_license
+    $CI->load->library('wompi/Wompi_license'); // file: libraries/Wompi_license.php, class: Wompi_license
     $result = $CI->wompi_license->isValid();
 
     return $result;
@@ -345,18 +345,24 @@ function wompi_ui_scripts()
             // Amount field:
             // - When partial payments are disabled, hide the amount row entirely (and keep value fixed).
             // - When enabled (not currently used), it would remain visible/editable.
-            var amountInput = document.querySelector('#payment_amount') || document.querySelector('input[name="amount"]');
+            var amountInput =
+                document.querySelector('#payment_amount') ||
+                document.querySelector('input[name="amount"]') ||
+                document.querySelector('input[name="payment_amount"]');
             if (amountInput) {
                 var row = amountInput.closest('.form-group, .col-md-12, .row, tr, .form-item');
                 if (show && !allowPartial) {
                     amountInput.value = (invoiceTotalCents / 100).toFixed(2);
                     amountInput.readOnly = true;
+                    amountInput.style.display = 'none';
                     if (row) row.style.display = 'none';
                 } else if (show && allowPartial) {
                     amountInput.readOnly = false;
+                    amountInput.style.display = '';
                     if (row) row.style.display = '';
                 } else {
                     amountInput.readOnly = false;
+                    amountInput.style.display = '';
                     if (row) row.style.display = '';
                 }
             }
