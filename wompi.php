@@ -306,8 +306,20 @@ function wompi_ui_scripts()
         }
 
         function selectedModeIsWompi() {
-            var sel = document.querySelector('input[name="payment_mode"]:checked');
-            return !!(sel && sel.value === 'wompi');
+            // Common Perfex templates: radio group name="payment_mode"
+            var radio = document.querySelector('input[type="radio"][name="payment_mode"][value="wompi"]:checked');
+            if (radio) return true;
+
+            // Some templates use selects
+            var select =
+                document.querySelector('select[name="payment_mode"]') ||
+                document.querySelector('select#payment_mode') ||
+                document.querySelector('select[name="paymentmode"]');
+            if (select && String(select.value).toLowerCase() === 'wompi') return true;
+
+            // Fallback: any checked radio with value wompi, regardless of name
+            var anyRadio = document.querySelector('input[type="radio"][value="wompi"]:checked');
+            return !!anyRadio;
         }
 
         function toggleSimpleWidget() {
@@ -348,7 +360,8 @@ function wompi_ui_scripts()
             var amountInput =
                 document.querySelector('#payment_amount') ||
                 document.querySelector('input[name="amount"]') ||
-                document.querySelector('input[name="payment_amount"]');
+                document.querySelector('input[name="payment_amount"]') ||
+                document.querySelector('input[name="paymentamount"]');
             if (amountInput) {
                 var row = amountInput.closest('.form-group, .col-md-12, .row, tr, .form-item');
                 if (show && !allowPartial) {
@@ -387,6 +400,14 @@ function wompi_ui_scripts()
         function init() {
             bindModeChanges();
             toggleSimpleWidget();
+
+            // Some themes manipulate DOM after load; keep it in sync briefly.
+            var tries = 0;
+            var iv = setInterval(function() {
+                toggleSimpleWidget();
+                tries++;
+                if (tries >= 10) clearInterval(iv);
+            }, 300);
         }
 
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

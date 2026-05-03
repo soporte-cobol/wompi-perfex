@@ -161,7 +161,9 @@ class Wompi_license
             'checksum'   => $local_key,
         ]);
 
-        log_message('debug', '[Wompi License] Verifying: ' . $license_key . ' | Domain: ' . $domain . ' | IP: ' . $ip . ' | Dir: ' . $dir);
+        // Don't log the full license key (sensitive). Keep enough for debugging.
+        $key_tail = substr($license_key, -6);
+        log_message('debug', '[Wompi License] Verifying key=***' . $key_tail . ' | Domain: ' . $domain . ' | IP: ' . $ip . ' | Dir: ' . $dir);
 
         $ch = curl_init(self::VERIFY_URL);
         curl_setopt_array($ch, [
