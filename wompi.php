@@ -328,9 +328,43 @@ function wompi_ui_scripts()
         var wompiLicensed = <?php echo $licensed ? 'true' : 'false'; ?>;
         var wompiWidgetEnabled = <?php echo $can_render_widget ? 'true' : 'false'; ?>;
         var wompiSignatureEndpoint = <?php echo json_encode(site_url('wompi/callback/get_checkout_data/' . (int) $invoice_id . '/' . $invoice->hash)); ?>;
+        var invoiceCurrency = <?php echo json_encode((string) $currency); ?>;
 
         function findPaymentForm() {
             return document.querySelector('#online_payment_form') || document.querySelector('#invoice_payment_form');
+        }
+
+        // Visual-only formatting: COP is typically shown without decimals in Colombia.
+        // Perfex may render ".00" across the invoice; strip it only in the customer invoice view,
+        // without changing any calculation or backend value.
+        function wompiStripTrailingZeros() {
+            try {
+                if (!document.body || !document.body.classList.contains('viewinvoice')) return;
+                if (String(invoiceCurrency || '').toUpperCase() !== 'COP') return;
+
+                function strip00(s) {
+                    return String(s).replace(/([.,]00)\\b/g, '');
+                }
+
+                var form = findPaymentForm();
+                if (form) {
+                    var amount = form.querySelector('input[name=\"amount\"]');
+                    if (amount && amount.value) amount.value = strip00(amount.value);
+                }
+
+                var nodes = document.querySelectorAll(
+                    '.subtotal, .total, .invoice-items-preview td.amount, .invoice-items-preview td, .table td'
+                );
+                for (var i = 0; i < nodes.length; i++) {
+                    var n = nodes[i];
+                    if (!n) continue;
+                    if (n.children && n.children.length) continue;
+                    if (!n.textContent) continue;
+                    n.textContent = strip00(n.textContent);
+                }
+            } catch (e) {
+                // No-op: purely cosmetic.
+            }
         }
 
         function selectedModeIsWompi() {
@@ -614,11 +648,13 @@ function wompi_ui_scripts()
             }
 
             toggleSimpleWidget();
+            wompiStripTrailingZeros();
 
             // Some themes manipulate DOM after load; keep it in sync briefly.
             var tries = 0;
             var iv = setInterval(function() {
                 toggleSimpleWidget();
+                wompiStripTrailingZeros();
                 tries++;
                 if (tries >= 10) clearInterval(iv);
             }, 300);
@@ -626,6 +662,7 @@ function wompi_ui_scripts()
             // Some Perfex themes auto-check the only payment method after DOM ready.
             // Watch for that and re-toggle once the radio state changes.
             setTimeout(toggleSimpleWidget, 1200);
+            setTimeout(wompiStripTrailingZeros, 1200);
         }
 
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
