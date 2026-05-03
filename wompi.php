@@ -198,10 +198,14 @@ function wompi_license_admin_notice()
     if (!wompi_license_valid()) {
         $CI->load->library('wompi/Wompi_license');
         $status = $CI->wompi_license->getStatus();
+        $ctx    = $CI->wompi_license->getVerifyContext();
         echo '<div class="alert alert-warning alert-dismissible wompi-admin-notice">'
             . '<button type="button" class="close" data-dismiss="alert">&times;</button>'
             . '⚠️ La licencia de <strong>Wompi Payment Gateway</strong> es inválida o ha expirado. '
             . 'Estado: <strong>' . htmlspecialchars($status, ENT_QUOTES, 'UTF-8') . '</strong>. '
+            . '<br><small>Validando como Domain=' . htmlspecialchars($ctx['domain'], ENT_QUOTES, 'UTF-8')
+            . ' IP=' . htmlspecialchars($ctx['ip'], ENT_QUOTES, 'UTF-8')
+            . ' Dir=' . htmlspecialchars($ctx['dir'], ENT_QUOTES, 'UTF-8') . '</small> '
             . '<a href="https://control.cobol.com.co/index.php?rp=/store/contenidos/wompi-perfex" target="_blank">Renueva aquí</a>.'
             . '</div>';
     }
@@ -223,12 +227,7 @@ function wompi_ui_scripts()
         return;
     }
 
-    // If license is invalid, we don't inject the widget (so customers won't pay),
-    // but we also don't hide the payment option to avoid breaking invoice UI.
-    // The actual payment attempt will be blocked by the gateway/callback and show the alert.
-    if (!wompi_license_valid()) {
-        return;
-    }
+    $licensed = wompi_license_valid();
 
     // Get invoice data (client and admin invoice views)
     $invoice_id = $is_client ? $CI->uri->segment(2) : $CI->uri->segment(3);
@@ -254,10 +253,7 @@ function wompi_ui_scripts()
     $allow_partial   = false;
     $integrity_secret = $gateway->decryptSetting('integrity_secret');
 
-    if (empty($public_key) || empty($integrity_secret)) {
-        // Don't inject a broken widget.
-        return;
-    }
+    $can_render_widget = $licensed && !empty($public_key) && !empty($integrity_secret);
 
     ?>
     <style id="wompi-simple-styles">
@@ -267,28 +263,30 @@ function wompi_ui_scripts()
     </style>
 
     <div id="wompi-simple-container" aria-hidden="true">
-        <div class="wompi-button-wrapper">
-            <form>
-                <?php
-                // Default amount for the widget is the current outstanding invoice value (in cents).
-                $amount_in_cents = (int) round(floatval($invoice->total_left_to_pay) * 100);
-                $reference       = $invoice_id . '_' . time();
-                $signature       = hash('sha256', $reference . $amount_in_cents . $currency . $integrity_secret);
-                ?>
-                <script
-                    src="https://checkout.wompi.co/widget.js"
-                    data-render="button"
-                    data-public-key="<?php echo htmlspecialchars($public_key, ENT_QUOTES, 'UTF-8'); ?>"
-                    data-currency="<?php echo htmlspecialchars($currency, ENT_QUOTES, 'UTF-8'); ?>"
-                    data-amount-in-cents="<?php echo (int) $amount_in_cents; ?>"
-                    data-reference="<?php echo htmlspecialchars($reference, ENT_QUOTES, 'UTF-8'); ?>"
-                    data-signature:integrity="<?php echo htmlspecialchars($signature, ENT_QUOTES, 'UTF-8'); ?>"
-                    data-redirect-url="<?php echo htmlspecialchars($redirect_url, ENT_QUOTES, 'UTF-8'); ?>"
-                    data-custom-data:invoice_id="<?php echo (int) $invoice_id; ?>"
-                    data-custom-data:hash="<?php echo htmlspecialchars($invoice->hash, ENT_QUOTES, 'UTF-8'); ?>">
-                </script>
-            </form>
-        </div>
+        <?php if ($can_render_widget): ?>
+            <div class="wompi-button-wrapper">
+                <form>
+                    <?php
+                    // Default amount for the widget is the current outstanding invoice value (in cents).
+                    $amount_in_cents = (int) round(floatval($invoice->total_left_to_pay) * 100);
+                    $reference       = $invoice_id . '_' . time();
+                    $signature       = hash('sha256', $reference . $amount_in_cents . $currency . $integrity_secret);
+                    ?>
+                    <script
+                        src="https://checkout.wompi.co/widget.js"
+                        data-render="button"
+                        data-public-key="<?php echo htmlspecialchars($public_key, ENT_QUOTES, 'UTF-8'); ?>"
+                        data-currency="<?php echo htmlspecialchars($currency, ENT_QUOTES, 'UTF-8'); ?>"
+                        data-amount-in-cents="<?php echo (int) $amount_in_cents; ?>"
+                        data-reference="<?php echo htmlspecialchars($reference, ENT_QUOTES, 'UTF-8'); ?>"
+                        data-signature:integrity="<?php echo htmlspecialchars($signature, ENT_QUOTES, 'UTF-8'); ?>"
+                        data-redirect-url="<?php echo htmlspecialchars($redirect_url, ENT_QUOTES, 'UTF-8'); ?>"
+                        data-custom-data:invoice_id="<?php echo (int) $invoice_id; ?>"
+                        data-custom-data:hash="<?php echo htmlspecialchars($invoice->hash, ENT_QUOTES, 'UTF-8'); ?>">
+                    </script>
+                </form>
+            </div>
+        <?php endif; ?>
     </div>
 
     <script>
@@ -296,6 +294,7 @@ function wompi_ui_scripts()
         'use strict';
         var allowPartial = <?php echo $allow_partial ? 'true' : 'false'; ?>;
         var invoiceTotalCents = <?php echo (int) round(floatval($invoice->total_left_to_pay) * 100); ?>;
+        var wompiLicensed = <?php echo $licensed ? 'true' : 'false'; ?>;
 
         function findPaymentForm() {
             return document.querySelector('#online_payment_form') || document.querySelector('#invoice_payment_form');
@@ -343,7 +342,15 @@ function wompi_ui_scripts()
             container.style.display = show ? 'block' : 'none';
             container.setAttribute('aria-hidden', show ? 'false' : 'true');
 
-            // Hide Perfex submit completely when Wompi is selected (simple, avoids double-submit confusion).
+            // If not licensed, don't try to replace the submit button with a missing widget.
+            // Keep the standard Perfex flow so it can show the license error on submit.
+            if (!wompiLicensed) {
+                if (payButtonWrap) payButtonWrap.style.display = '';
+                if (submitBtn) submitBtn.style.display = submitBtn.dataset.wompiOriginalDisplay || '';
+                return;
+            }
+
+            // Licensed: hide Perfex submit completely when Wompi is selected (simple, avoids double-submit confusion).
             if (submitBtn) {
                 if (show) {
                     if (!submitBtn.dataset.wompiOriginalDisplay) {

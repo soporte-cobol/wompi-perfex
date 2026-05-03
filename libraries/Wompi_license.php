@@ -84,6 +84,28 @@ class Wompi_license
     }
 
     /**
+     * Return the verification context used for WHMCS checks (non-sensitive).
+     * Useful for debugging mismatches between WHMCS product settings and runtime environment.
+     *
+     * @return array { domain: string, ip: string, dir: string }
+     */
+    public function getVerifyContext()
+    {
+        $domain = $_SERVER['HTTP_HOST'] ?? parse_url(base_url(), PHP_URL_HOST);
+        $domain = preg_replace('/:[0-9]+$/', '', (string) $domain);
+        $domain = preg_replace('/^www\./', '', (string) $domain);
+
+        $ip  = $_SERVER['SERVER_ADDR'] ?? ($_SERVER['LOCAL_ADDR'] ?? '');
+        $dir = str_replace('\\', '/', rtrim(FCPATH ?? BASEPATH, '/\\'));
+
+        return [
+            'domain' => $domain ?: 'unknown',
+            'ip'     => $ip ?: 'unknown',
+            'dir'    => $dir ?: 'unknown',
+        ];
+    }
+
+    /**
      * Return the expiry date of the license (empty = lifetime / not set).
      *
      * @return string
