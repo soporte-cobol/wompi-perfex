@@ -272,6 +272,12 @@ class Wompi_license
             $xml = null;
             if (function_exists('simplexml_load_string')) {
                 $xml = @simplexml_load_string($raw);
+                if (!($xml instanceof SimpleXMLElement)) {
+                    // WHMCS License Manager often returns multiple top-level nodes (not well-formed XML).
+                    // Wrap it in a root element and try again.
+                    $wrapped = '<response>' . $raw . '</response>';
+                    $xml = @simplexml_load_string($wrapped);
+                }
             }
             if ($xml instanceof SimpleXMLElement) {
                 $status = (string) ($xml->status ?? 'Invalid');
