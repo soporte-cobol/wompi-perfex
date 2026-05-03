@@ -21,8 +21,9 @@ define('WOMPI_ENDPOINT_TOKEN', 'wmp_reg_8x2kL9pQv3mNdRtY');
 /**
  * Register payment gateway
  */
-// Perfex/CI loader on Linux is case-sensitive: make the gateway class explicit.
-register_payment_gateway('Wompi_gateway', WOMPI_MODULE_NAME);
+// Perfex expects the gateway identifier in lowercase, matching the library classname suffix.
+// File/class should be libraries/Wompi_gateway.php => class Wompi_gateway (Perfex docs).
+register_payment_gateway('wompi_gateway', WOMPI_MODULE_NAME);
 
 /**
  * Register language files
@@ -195,9 +196,12 @@ function wompi_license_admin_notice()
 
     // --- Invalid license ---
     if (!wompi_license_valid()) {
+        $CI->load->library('wompi/Wompi_license');
+        $status = $CI->wompi_license->getStatus();
         echo '<div class="alert alert-warning alert-dismissible wompi-admin-notice">'
             . '<button type="button" class="close" data-dismiss="alert">&times;</button>'
             . '⚠️ La licencia de <strong>Wompi Payment Gateway</strong> es inválida o ha expirado. '
+            . 'Estado: <strong>' . htmlspecialchars($status, ENT_QUOTES, 'UTF-8') . '</strong>. '
             . '<a href="https://control.cobol.com.co/index.php?rp=/store/contenidos/wompi-perfex" target="_blank">Renueva aquí</a>.'
             . '</div>';
     }
@@ -357,16 +361,22 @@ function wompi_ui_scripts()
             // Amount field:
             // - When partial payments are disabled, hide the amount row entirely (and keep value fixed).
             // - When enabled (not currently used), it would remain visible/editable.
-            var amountInput =
-                document.querySelector('#payment_amount') ||
-                document.querySelector('input[name="amount"]') ||
-                document.querySelector('input[name="payment_amount"]') ||
-                document.querySelector('input[name="paymentamount"]');
-            if (amountInput) {
+            var amountInputs = Array.prototype.slice.call(document.querySelectorAll(
+                '#payment_amount,' +
+                'input[name="amount"],' +
+                'input[name="payment_amount"],' +
+                'input[name="paymentamount"],' +
+                'input[data-amount]'
+            ));
+
+            amountInputs.forEach(function(amountInput) {
+                if (!amountInput) return;
                 var row = amountInput.closest('.form-group, .col-md-12, .row, tr, .form-item');
+
                 if (show && !allowPartial) {
                     amountInput.value = (invoiceTotalCents / 100).toFixed(2);
                     amountInput.readOnly = true;
+                    // Hide both the input and its closest row container to remove "variable amount" UI.
                     amountInput.style.display = 'none';
                     if (row) row.style.display = 'none';
                 } else if (show && allowPartial) {
@@ -378,7 +388,7 @@ function wompi_ui_scripts()
                     amountInput.style.display = '';
                     if (row) row.style.display = '';
                 }
-            }
+            });
         }
 
         function bindModeChanges() {
