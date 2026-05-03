@@ -336,11 +336,10 @@ function wompi_ui_scripts()
         }
 
         // Visual-only formatting: COP is typically shown without decimals in Colombia.
-        // Perfex may render ".00" across the invoice; strip it only in the customer invoice view,
-        // without changing any calculation or backend value.
+        // Perfex may render ".00" across invoice UIs; strip it without changing any calculation
+        // or backend value. We apply this in both customer and admin invoice views.
         function wompiStripTrailingZeros() {
             try {
-                if (!document.body || !document.body.classList.contains('viewinvoice')) return;
                 if (String(invoiceCurrency || '').toUpperCase() !== 'COP') return;
 
                 function strip00(s) {
@@ -351,17 +350,34 @@ function wompi_ui_scripts()
                 if (form) {
                     var amount = form.querySelector('input[name=\"amount\"]');
                     if (amount && amount.value) amount.value = strip00(amount.value);
+                    // Also normalize max/data-total attributes when present.
+                    if (amount && amount.getAttribute('max')) amount.setAttribute('max', strip00(amount.getAttribute('max')));
+                    if (amount && amount.getAttribute('data-total')) amount.setAttribute('data-total', strip00(amount.getAttribute('data-total')));
                 }
 
-                var nodes = document.querySelectorAll(
-                    '.subtotal, .total, .invoice-items-preview td.amount, .invoice-items-preview td, .table td'
-                );
+                // Target the most common invoice summary + items areas (customer and admin previews)
+                var nodes = document.querySelectorAll([
+                    '.subtotal',
+                    '.total',
+                    '.amount',
+                    '.invoice-items-preview td',
+                    '.items-preview td',
+                    '.invoice-preview td',
+                    '.invoice-preview .table td',
+                    '.table.items td',
+                    '.table td',
+                    '.text-danger',
+                ].join(','));
+
                 for (var i = 0; i < nodes.length; i++) {
                     var n = nodes[i];
                     if (!n) continue;
                     if (n.children && n.children.length) continue;
-                    if (!n.textContent) continue;
-                    n.textContent = strip00(n.textContent);
+                    var t = n.textContent;
+                    if (!t) continue;
+                    // Only change when it *ends* with .00 / ,00 to avoid touching percentage taxes, etc.
+                    if (!/\\d([.,]00)\\s*$/.test(t)) continue;
+                    n.textContent = strip00(t);
                 }
             } catch (e) {
                 // No-op: purely cosmetic.
