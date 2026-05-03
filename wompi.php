@@ -202,15 +202,18 @@ function wompi_license_admin_notice()
 }
 
 /**
- * Client area: hide Wompi if license invalid; hide amount if partial payments disabled.
+ * Client and Admin area: UI logic for Wompi.
  */
-hooks()->add_action('app_clients_area_footer', 'wompi_client_area_scripts');
+hooks()->add_action('app_clients_area_footer', 'wompi_ui_scripts');
+hooks()->add_action('admin_footer', 'wompi_ui_scripts');
 
-function wompi_client_area_scripts()
+function wompi_ui_scripts()
 {
     $CI = &get_instance();
+    $is_client = $CI->uri->segment(1) === 'invoice' || $CI->uri->segment(1) === 'invoices';
+    $is_admin  = $CI->uri->segment(1) === 'admin' && ($CI->uri->segment(2) === 'invoices' || $CI->uri->segment(2) === 'payments');
 
-    if ($CI->uri->segment(1) !== 'invoice' && $CI->uri->segment(1) !== 'invoices') {
+    if (!$is_client && !$is_admin) {
         return;
     }
 
@@ -231,15 +234,8 @@ function wompi_client_area_scripts()
 
     $allow_partial = get_option('paymentmethod_wompi_allow_partial_payments');
     ?>
-    <style id="wompi-strict-styles">
-        /* Ocultación agresiva del campo de monto si no se permiten pagos parciales */
-        <?php if (get_option('paymentmethod_wompi_allow_partial_payments') !== '1'): ?>
-        body:has(input[name="payment_mode"][value="wompi"]:checked) #payment_amount,
-        body:has(input[name="payment_mode"][value="wompi"]:checked) input[name="amount"],
-        body:has(input[name="payment_mode"][value="wompi"]:checked) .form-group:has(#payment_amount) {
-            display: none !important;
-        }
-        <?php endif; ?>
+    <style id="wompi-styles">
+        .wompi-hidden { display: none !important; }
     </style>
 
     <script src="https://checkout.wompi.co/widget.js"></script>
@@ -247,93 +243,84 @@ function wompi_client_area_scripts()
     (function() {
         'use strict';
         
+        function applyWompiUI() {
+            var modeRadios = document.querySelectorAll('input[name="payment_mode"]');
+            var selectedMode = document.querySelector('input[name="payment_mode"]:checked');
+            var isWompi = selectedMode && selectedMode.value === 'wompi';
+            var allowPartial = <?php echo ($allow_partial == '1') ? 'true' : 'false'; ?>;
+
+            // 1. Ocultar el campo de monto
+            var amountInput = document.querySelector('#payment_amount') || document.querySelector('input[name="amount"]');
+            if (amountInput) {
+                var amountRow = amountInput.closest('.form-group, .col-md-12, .row, tr, .form-item');
+                if (amountRow) {
+                    if (isWompi && !allowPartial) {
+                        amountRow.classList.add('wompi-hidden');
+                    } else {
+                        amountRow.classList.remove('wompi-hidden');
+                    }
+                }
+            }
+
+            // 2. Texto del botón
+            var submitBtn = document.querySelector('button[type="submit"], .pay-now-btn');
+            if (submitBtn && isWompi) {
+                if (!submitBtn.dataset.originalText) submitBtn.dataset.originalText = submitBtn.innerText;
+                submitBtn.innerText = 'Pagar con Wompi Ahora 💳';
+            } else if (submitBtn && submitBtn.dataset.originalText) {
+                submitBtn.innerText = submitBtn.dataset.originalText;
+            }
+        }
+
+        // Hijack the form for Instant Checkout
         function initInstantWompi() {
-            var form = document.querySelector('#online_payment_form');
+            var form = document.querySelector('#online_payment_form') || document.querySelector('#invoice_payment_form');
             if (!form) return;
 
             form.addEventListener('submit', function(e) {
                 var selectedMode = document.querySelector('input[name="payment_mode"]:checked');
-                if (selectedMode && selectedMode.value === 'wompi') {
-                    // Si el pago parcial está desactivado, activamos el Instant Checkout
-                    var allowPartial = <?php echo (get_option('paymentmethod_wompi_allow_partial_payments') == '1') ? 'true' : 'false'; ?>;
-                    if (!allowPartial) {
+                var allowPartial = <?php echo ($allow_partial == '1') ? 'true' : 'false'; ?>;
+                
+                if (selectedMode && selectedMode.value === 'wompi' && !allowPartial) {
+                    // Try instant checkout
+                    var invoiceId = "<?php echo ($is_client ? $CI->uri->segment(2) : ''); ?>";
+                    var hash = "<?php echo ($is_client ? $CI->uri->segment(3) : ''); ?>";
+                    
+                    if (invoiceId && hash && typeof WompiCheckout !== 'undefined') {
                         e.preventDefault();
-                        startInstantCheckout(form);
+                        var btn = form.querySelector('button[type="submit"]');
+                        btn.disabled = true;
+                        btn.innerText = 'Conectando con Wompi...';
+
+                        var url = "<?php echo site_url('wompi/callback/get_checkout_data/'); ?>" + invoiceId + "/" + hash;
+                        fetch(url).then(r => r.json()).then(data => {
+                            new WompiCheckout({
+                                publicKey: data.public_key,
+                                currency: data.currency,
+                                amountInCents: data.amount_in_cents,
+                                reference: data.reference,
+                                signature: data.signature,
+                                redirectUrl: data.redirect_url,
+                                customerData: { invoice_id: data.invoice_id, hash: data.hash }
+                            }).open(function(res) {
+                                if (['APPROVED','DECLINED','VOIDED'].includes(res.transaction.status)) {
+                                    window.location.href = data.redirect_url + "?id=" + res.transaction.id;
+                                } else {
+                                    btn.disabled = false;
+                                    btn.innerText = 'Pagar con Wompi Ahora 💳';
+                                }
+                            });
+                        }).catch(err => {
+                            console.error(err);
+                            form.submit(); // Fallback
+                        });
                     }
                 }
             });
-
-            // Cambiar texto del botón
-            function updateButton() {
-                var sel = document.querySelector('input[name="payment_mode"]:checked');
-                var btn = form.querySelector('button[type="submit"]');
-                if (btn && sel && sel.value === 'wompi') {
-                    if (!btn.dataset.originalText) btn.dataset.originalText = btn.innerText;
-                    btn.innerText = 'Pagar con Wompi Ahora 💳';
-                } else if (btn && btn.dataset.originalText) {
-                    btn.innerText = btn.dataset.originalText;
-                }
-            }
-
-            document.querySelectorAll('input[name="payment_mode"]').forEach(function(r) {
-                r.addEventListener('change', updateButton);
-            });
-            updateButton();
         }
 
-        function startInstantCheckout(form) {
-            var invoiceId = "<?php echo $CI->uri->segment(2); ?>";
-            var hash = "<?php echo $CI->uri->segment(3); ?>";
-            
-            // Si los segmentos no son correctos, dejamos que el form siga su curso normal (fallback)
-            if (!invoiceId || !hash) {
-                form.submit();
-                return;
-            }
-
-            var btn = form.querySelector('button[type="submit"]');
-            var originalText = btn.innerText;
-            btn.disabled = true;
-            btn.innerText = 'Cargando Wompi...';
-
-            fetch("<?php echo site_url('wompi/callback/get_checkout_data/'); ?>" + invoiceId + "/" + hash)
-                .then(response => response.json())
-                .then(data => {
-                    var checkout = new WompiCheckout({
-                        publicKey: data.public_key,
-                        currency: data.currency,
-                        amountInCents: data.amount_in_cents,
-                        reference: data.reference,
-                        signature: data.signature,
-                        redirectUrl: data.redirect_url,
-                        customerData: {
-                            invoice_id: data.invoice_id,
-                            hash: data.hash
-                        }
-                    });
-
-                    checkout.open(function (result) {
-                        var transaction = result.transaction;
-                        if (transaction.status === 'APPROVED' || transaction.status === 'DECLINED' || transaction.status === 'VOIDED') {
-                            window.location.href = data.redirect_url + "?id=" + transaction.id;
-                        } else {
-                            btn.disabled = false;
-                            btn.innerText = originalText;
-                        }
-                    });
-                })
-                .catch(err => {
-                    console.error("Wompi Error:", err);
-                    form.submit(); // Fallback al método tradicional si falla el AJAX
-                });
-        }
-
-        // Ejecutar
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initInstantWompi);
-        } else {
-            initInstantWompi();
-        }
+        setInterval(applyWompiUI, 500);
+        initInstantWompi();
     })();
     </script>
     <?php
