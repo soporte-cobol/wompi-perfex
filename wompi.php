@@ -232,14 +232,22 @@ function wompi_ui_scripts()
     $CI = &get_instance();
     $is_client = $CI->uri->segment(1) === 'invoice' || $CI->uri->segment(1) === 'invoices';
     $is_admin  = $CI->uri->segment(1) === 'admin' && ($CI->uri->segment(2) === 'invoices' || $CI->uri->segment(2) === 'payments');
+    $is_admin_payment_gateways = $CI->uri->segment(1) === 'admin'
+        && $CI->uri->segment(2) === 'settings'
+        && $CI->input->get('group') === 'payment_gateways';
 
-    if (!$is_client && !$is_admin) {
+    if (!$is_client && !$is_admin && !$is_admin_payment_gateways) {
         return;
     }
 
     // Always inject the UI script so we can hide the amount field when Wompi is selected,
     // even if the license is currently invalid.
     $licensed = wompi_license_valid();
+
+    // Ensure the license validation runs (and logs) on payment gateways settings page when requested.
+    if ($CI->input->get('wompi_revalidate') === '1' || $is_admin_payment_gateways) {
+        $licensed = wompi_license_valid();
+    }
 
     // Get invoice data (client and admin invoice views)
     $invoice_id = $is_client ? $CI->uri->segment(2) : $CI->uri->segment(3);
