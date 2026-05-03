@@ -132,7 +132,13 @@ function wompi_license_valid()
 
     $CI = &get_instance();
     $CI->load->library('wompi/Wompi_license'); // file: libraries/Wompi_license.php, class: Wompi_license
-    $result = $CI->wompi_license->isValid();
+
+    // In admin payment gateway settings we prefer fresh validation to reduce confusion.
+    $segment2 = $CI->uri->segment(2);
+    $group    = $CI->input->get('group');
+    $force    = ($segment2 === 'settings' && $group === 'payment_gateways') || ($CI->input->get('wompi_revalidate') === '1');
+
+    $result = $force ? $CI->wompi_license->revalidate() : $CI->wompi_license->isValid();
 
     return $result;
 }
@@ -350,26 +356,25 @@ function wompi_ui_scripts()
             container.setAttribute('aria-hidden', show ? 'false' : 'true');
 
             // If the widget isn't enabled (unlicensed, missing keys, or partial payments ON),
-            // keep the standard Perfex submit flow.
+            // keep the standard Perfex submit flow. We still apply amount-field rules below.
             if (!wompiWidgetEnabled) {
                 if (payButtonWrap) payButtonWrap.style.display = '';
                 if (submitBtn) submitBtn.style.display = submitBtn.dataset.wompiOriginalDisplay || '';
-                return;
-            }
-
-            // Licensed: hide Perfex submit completely when Wompi is selected (simple, avoids double-submit confusion).
-            if (submitBtn) {
-                if (show) {
-                    if (!submitBtn.dataset.wompiOriginalDisplay) {
-                        submitBtn.dataset.wompiOriginalDisplay = submitBtn.style.display || '';
+            } else {
+                // Licensed: hide Perfex submit completely when Wompi is selected (simple, avoids double-submit confusion).
+                if (submitBtn) {
+                    if (show) {
+                        if (!submitBtn.dataset.wompiOriginalDisplay) {
+                            submitBtn.dataset.wompiOriginalDisplay = submitBtn.style.display || '';
+                        }
+                        submitBtn.style.display = 'none';
+                    } else {
+                        submitBtn.style.display = submitBtn.dataset.wompiOriginalDisplay || '';
                     }
-                    submitBtn.style.display = 'none';
-                } else {
-                    submitBtn.style.display = submitBtn.dataset.wompiOriginalDisplay || '';
                 }
-            }
-            if (payButtonWrap) {
-                payButtonWrap.style.display = show ? 'none' : '';
+                if (payButtonWrap) {
+                    payButtonWrap.style.display = show ? 'none' : '';
+                }
             }
 
             // Amount field:
