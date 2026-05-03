@@ -238,7 +238,7 @@ No. Tu configuración (credenciales de Wompi, ajustes, etc.) se mantiene intacta
 
 | Canal | Contacto |
 |---|---|
-| 🌐 Portal de soporte | [control.cobol.com.co/support](https://control.cobol.com.co/support) |
+| 🌐 Portal de soporte | [control.cobol.com.co/support](https://control.cobol.com.co/submitticket.php) |
 | 📧 Email | soporte@cobol.com.co |
 | 🐛 Bugs / Issues | [GitHub Issues](../../issues) |
 | 💬 Preguntas generales | [GitHub Discussions](../../discussions) |
