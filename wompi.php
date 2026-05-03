@@ -240,14 +240,16 @@ function wompi_ui_scripts()
         return;
     }
 
+    // On the payment gateways settings page, we only need to trigger license validation (and logs).
+    // No invoice context is available there.
+    if ($is_admin_payment_gateways) {
+        wompi_license_valid();
+        return;
+    }
+
     // Always inject the UI script so we can hide the amount field when Wompi is selected,
     // even if the license is currently invalid.
     $licensed = wompi_license_valid();
-
-    // Ensure the license validation runs (and logs) on payment gateways settings page when requested.
-    if ($CI->input->get('wompi_revalidate') === '1' || $is_admin_payment_gateways) {
-        $licensed = wompi_license_valid();
-    }
 
     // Get invoice data (client and admin invoice views)
     $invoice_id = $is_client ? $CI->uri->segment(2) : $CI->uri->segment(3);
