@@ -138,6 +138,8 @@ function wompi_license_valid()
     $group    = $CI->input->get('group');
     $force    = ($segment2 === 'settings' && $group === 'payment_gateways') || ($CI->input->get('wompi_revalidate') === '1');
 
+    log_message('debug', '[Wompi] wompi_license_valid called force=' . ($force ? '1' : '0'));
+
     $result = $force ? $CI->wompi_license->revalidate() : $CI->wompi_license->isValid();
 
     return $result;
@@ -160,6 +162,10 @@ function wompi_license_admin_notice()
     if (!$show) {
         return;
     }
+
+    // Force license validation on this page load so admins see up-to-date state
+    // and we get deterministic logging.
+    $is_valid = wompi_license_valid();
 
     $license_key = get_option('paymentmethod_wompi_license_key');
     $trial_exp   = get_option('wompi_trial_expires');
@@ -201,7 +207,7 @@ function wompi_license_admin_notice()
     }
 
     // --- Invalid license ---
-    if (!wompi_license_valid()) {
+    if (!$is_valid) {
         $CI->load->library('wompi/Wompi_license');
         $status = $CI->wompi_license->getStatus();
         $ctx    = $CI->wompi_license->getVerifyContext();
