@@ -37,6 +37,12 @@ class Callback extends App_Controller
      */
     public function response()
     {
+        if (!function_exists('wompi_license_valid') || !wompi_license_valid()) {
+            set_alert('warning', _l('wompi_license_invalid'));
+            redirect(site_url());
+            return;
+        }
+
         $transaction_id = $this->input->get('id');
 
         if (empty($transaction_id)) {
@@ -48,6 +54,7 @@ class Callback extends App_Controller
         $transaction = $this->_fetch_transaction($transaction_id);
 
         if (!$transaction) {
+            log_message('error', '[Wompi] response(): transaction fetch returned null for id=' . $transaction_id);
             set_alert('danger', _l('wompi_payment_failed'));
             redirect(site_url());
             return;
@@ -62,6 +69,7 @@ class Callback extends App_Controller
 
         // Validate we have all the data we need
         if (empty($invoice_id) || empty($hash)) {
+            log_message('error', '[Wompi] response(): missing custom_data for tx=' . $tx_id . ' status=' . $status);
             $this->_render_result([
                 'status'         => 'ERROR',
                 'transaction_id' => $tx_id,
@@ -76,6 +84,7 @@ class Callback extends App_Controller
         // Make sure the invoice actually exists and the hash matches
         $invoice = $this->invoices_model->get($invoice_id);
         if (!$invoice || $invoice->hash !== $hash) {
+            log_message('error', '[Wompi] response(): invoice mismatch. invoice_id=' . $invoice_id . ' tx=' . $tx_id);
             $this->_render_result([
                 'status'         => 'ERROR',
                 'transaction_id' => $tx_id,
@@ -89,6 +98,7 @@ class Callback extends App_Controller
 
         // Register payment in Perfex if approved
         if ($status === 'APPROVED' && !$this->_payment_exists($tx_id)) {
+            log_message('info', '[Wompi] response(): recording payment invoice_id=' . $invoice_id . ' tx=' . $tx_id . ' amount=' . $amount . ' ' . $currency);
             $this->payments_model->add([
                 'amount'        => $amount,
                 'invoiceid'     => $invoice_id,
@@ -154,6 +164,13 @@ class Callback extends App_Controller
      */
     public function webhook()
     {
+        // Block processing if the module is not licensed.
+        // This prevents recording payments when the gateway is disabled due to license.
+        if (!function_exists('wompi_license_valid') || !wompi_license_valid()) {
+            http_response_code(403);
+            exit('Forbidden');
+        }
+
         // Only accept POST
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
@@ -258,28 +275,43 @@ class Callback extends App_Controller
     {
         $checksum   = $payload['signature']['checksum']   ?? '';
         $properties = $payload['signature']['properties'] ?? [];
+        $timestamp  = $payload['timestamp'] ?? null;
 
-        if (empty($checksum) || empty($properties)) {
+        if (empty($checksum) || empty($properties) || !is_numeric($timestamp)) {
             return false;
         }
 
         $events_secret = $this->wompi_gateway->decryptSetting('events_secret');
+        if (empty($events_secret)) {
+            return false;
+        }
 
         // Build the string to hash: concatenate property values in order, then append the secret
         $signature_raw = '';
         foreach ($properties as $prop) {
-            // Properties are dot-notation paths into the payload (e.g. "data.transaction.id")
+            // Properties are dot-notation paths into the payload.
+            // Wompi docs commonly use "transaction.id" (relative to data), but some payloads may use "data.transaction.id".
             $parts = explode('.', $prop);
             $value = $payload;
             foreach ($parts as $part) {
                 if (!isset($value[$part])) {
-                    // Property path not found — reject
-                    return false;
+                    // Try again relative to data object (supports "transaction.id" style paths)
+                    $value = $payload['data'] ?? [];
+                    foreach ($parts as $part2) {
+                        if (!isset($value[$part2])) {
+                            return false;
+                        }
+                        $value = $value[$part2];
+                    }
+                    // Found relative to data, continue with next property.
+                    break;
                 }
                 $value = $value[$part];
             }
             $signature_raw .= $value;
         }
+        // Wompi requires concatenating timestamp before the secret.
+        $signature_raw .= (string) $timestamp;
         $signature_raw .= $events_secret;
 
         $calculated = hash('sha256', $signature_raw);
@@ -314,5 +346,3 @@ class Callback extends App_Controller
         exit;
     }
 }
-
-
