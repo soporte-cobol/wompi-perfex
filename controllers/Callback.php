@@ -125,13 +125,32 @@ class Callback extends App_Controller
      */
     public function get_checkout_data($invoice_id, $hash)
     {
+        // Module must be licensed to issue valid signatures.
+        if (!function_exists('wompi_license_valid') || !wompi_license_valid()) {
+            header('HTTP/1.1 403 Forbidden');
+            exit;
+        }
+
         $invoice = $this->invoices_model->get($invoice_id);
         if (!$invoice || $invoice->hash !== $hash) {
             header('HTTP/1.1 403 Forbidden');
             exit;
         }
 
+        // Partial payments support:
+        // If enabled, allow the client to request a signature for a specific amount (<= total_left_to_pay).
+        // We accept POST 'amount' in major units (e.g. 4500000.00).
+        $allow_partial = (get_option('paymentmethod_wompi_allow_partial_payments') === '1');
+
         $amount = $invoice->total_left_to_pay;
+        $requested = $this->input->post('amount');
+        if ($allow_partial && $requested !== null && $requested !== '') {
+            $requested_amount = (float) $requested;
+            if ($requested_amount > 0 && $requested_amount <= (float) $invoice->total_left_to_pay) {
+                $amount = $requested_amount;
+            }
+        }
+
         $currency = $invoice->currency_name;
         $amount_in_cents = (int) round(floatval($amount) * 100);
         $reference = $invoice_id . '_' . time();

@@ -279,14 +279,12 @@ function wompi_ui_scripts()
     $public_key      = $gateway->getSetting('public_key');
     $redirect_url    = site_url('wompi/callback/response');
     // Partial payments require regenerating the Wompi integrity signature when the amount changes.
-    // For now:
-    // - If partial payments are OFF: we inject the Wompi widget and hide the amount field.
-    // - If partial payments are ON: we do NOT inject the widget (falls back to Perfex submit flow),
-    //   because a fixed widget signature would break when the user edits the amount.
+    // We support this by calling a server-side endpoint that returns a fresh reference+signature
+    // for the chosen amount, without exposing the integrity secret to the browser.
     $allow_partial   = (get_option('paymentmethod_wompi_allow_partial_payments') === '1');
     $integrity_secret = $gateway->decryptSetting('integrity_secret');
 
-    $can_render_widget = $licensed && !$allow_partial && !empty($public_key) && !empty($integrity_secret);
+    $can_render_widget = $licensed && !empty($public_key) && !empty($integrity_secret);
 
     ?>
     <style id="wompi-simple-styles">
@@ -329,6 +327,7 @@ function wompi_ui_scripts()
         var invoiceTotalCents = <?php echo (int) round(floatval($invoice->total_left_to_pay) * 100); ?>;
         var wompiLicensed = <?php echo $licensed ? 'true' : 'false'; ?>;
         var wompiWidgetEnabled = <?php echo $can_render_widget ? 'true' : 'false'; ?>;
+        var wompiSignatureEndpoint = <?php echo json_encode(site_url('wompi/callback/get_checkout_data/' . (int) $invoice_id . '/' . $invoice->hash)); ?>;
 
         function findPaymentForm() {
             return document.querySelector('#online_payment_form') || document.querySelector('#invoice_payment_form');
@@ -416,7 +415,7 @@ function wompi_ui_scripts()
 
             // Amount field:
             // - When partial payments are disabled, hide the amount row entirely (and keep value fixed).
-            // - When enabled (not currently used), it would remain visible/editable.
+            // - When enabled, it remains visible/editable and we re-sign the widget on change.
             // Your invoice template always uses input[name="amount"] inside #online_payment_form.
             // Keep this targeted first, then fallback to generic selectors.
             var amountInputs = Array.prototype.slice.call(document.querySelectorAll(
@@ -448,6 +447,87 @@ function wompi_ui_scripts()
                     if (row) row.style.display = '';
                 }
             });
+
+            // Partial payments: keep the widget signature in sync with the chosen amount.
+            if (show && allowPartial && wompiWidgetEnabled) {
+                var amountField = form.querySelector('input[name=\"amount\"]') || document.querySelector('#online_payment_form input[name=\"amount\"]');
+                if (amountField) {
+                    scheduleWidgetRefresh(amountField.value);
+                }
+            }
+        }
+
+        var _refreshTimer = null;
+        var _lastAmountKey = null;
+
+        function scheduleWidgetRefresh(amountValue) {
+            if (_refreshTimer) clearTimeout(_refreshTimer);
+            _refreshTimer = setTimeout(function() {
+                refreshWidgetForAmount(amountValue);
+            }, 250);
+        }
+
+        function refreshWidgetForAmount(amountValue) {
+            if (!wompiSignatureEndpoint) return;
+
+            var parsed = parseFloat(String(amountValue).replace(',', '.'));
+            if (!isFinite(parsed) || parsed <= 0) return;
+
+            // Avoid hammering the endpoint if the value didn't change meaningfully.
+            var key = parsed.toFixed(2);
+            if (_lastAmountKey === key) return;
+            _lastAmountKey = key;
+
+            // Build form-encoded body; Perfex will inject CSRF token automatically for jQuery,
+            // but we use fetch here so we rely on the cookie + same-origin + posted token if present.
+            var body = 'amount=' + encodeURIComponent(key);
+
+            // If Perfex defines global csrfData (it does in your HTML), include it explicitly.
+            try {
+                if (window.csrfData && window.csrfData.token_name && window.csrfData.hash) {
+                    body += '&' + encodeURIComponent(window.csrfData.token_name) + '=' + encodeURIComponent(window.csrfData.hash);
+                }
+            } catch (e) {}
+
+            fetch(wompiSignatureEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                credentials: 'same-origin',
+                body: body
+            }).then(function(r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            }).then(function(data) {
+                if (!data || !data.public_key || !data.signature || !data.reference) return;
+                rerenderWidget(data);
+            }).catch(function() {
+                // Keep existing widget; user can still pay full amount via last signature.
+            });
+        }
+
+        function rerenderWidget(data) {
+            var container = document.getElementById('wompi-simple-container');
+            if (!container) return;
+            var wrap = container.querySelector('.wompi-button-wrapper');
+            if (!wrap) return;
+
+            // Rebuild the widget script tag with the new amount/reference/signature.
+            wrap.innerHTML = '';
+
+            var form = document.createElement('form');
+            var script = document.createElement('script');
+            script.src = 'https://checkout.wompi.co/widget.js';
+            script.setAttribute('data-render', 'button');
+            script.setAttribute('data-public-key', String(data.public_key));
+            script.setAttribute('data-currency', String(data.currency || 'COP'));
+            script.setAttribute('data-amount-in-cents', String(data.amount_in_cents));
+            script.setAttribute('data-reference', String(data.reference));
+            script.setAttribute('data-signature:integrity', String(data.signature));
+            script.setAttribute('data-redirect-url', String(data.redirect_url || ''));
+            script.setAttribute('data-custom-data:invoice_id', String(data.invoice_id || ''));
+            script.setAttribute('data-custom-data:hash', String(data.hash || ''));
+            form.appendChild(script);
+            wrap.appendChild(form);
         }
 
         function bindModeChanges() {
@@ -458,6 +538,7 @@ function wompi_ui_scripts()
                 if (t.name === 'payment_mode') toggleSimpleWidget();
                 if (t.name === 'paymentmode') toggleSimpleWidget();
                 if (t.id === 'payment_mode' || t.name === 'paymentmode') toggleSimpleWidget();
+                if (t.name === 'amount') toggleSimpleWidget();
             }, true);
             // Some themes/plugins bind click instead of change.
             document.addEventListener('click', function(e) {
@@ -465,6 +546,13 @@ function wompi_ui_scripts()
                 if (!t) return;
                 if (t.name === 'payment_mode') toggleSimpleWidget();
                 if (t.name === 'paymentmode') toggleSimpleWidget();
+            }, true);
+
+            // Listen for typing in amount field (partial payments enabled).
+            document.addEventListener('input', function(e) {
+                var t = e.target;
+                if (!t) return;
+                if (t.name === 'amount') toggleSimpleWidget();
             }, true);
         }
 
