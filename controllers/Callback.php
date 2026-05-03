@@ -22,7 +22,7 @@ class Callback extends App_Controller
     public function __construct()
     {
         parent::__construct();
-        $this->load->library('wompi/wompi_gateway');
+        $this->load->library('wompi/Wompi_gateway');
         $this->load->model('payments_model');
         $this->load->model('invoices_model');
     }

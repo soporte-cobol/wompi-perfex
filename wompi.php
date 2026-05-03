@@ -21,7 +21,8 @@ define('WOMPI_ENDPOINT_TOKEN', 'wmp_reg_8x2kL9pQv3mNdRtY');
 /**
  * Register payment gateway
  */
-register_payment_gateway('wompi_gateway', WOMPI_MODULE_NAME);
+// Perfex/CI loader on Linux is case-sensitive: make the gateway class explicit.
+register_payment_gateway('Wompi_gateway', WOMPI_MODULE_NAME);
 
 /**
  * Register language files
@@ -129,7 +130,7 @@ function wompi_license_valid()
     }
 
     $CI = &get_instance();
-    $CI->load->library('wompi/wompi_license');
+    $CI->load->library('wompi/wompi_license'); // file: libraries/wompi_license.php, class: Wompi_license
     $result = $CI->wompi_license->isValid();
 
     return $result;
@@ -245,12 +246,15 @@ function wompi_ui_scripts()
         return;
     }
 
+    // Ensure gateway library is loaded (some Perfex pages won't preload it).
+    $CI->load->library('wompi/Wompi_gateway');
     $gateway         = $CI->wompi_gateway;
     $currency        = $invoice->currency_name;
     $public_key      = $gateway->getSetting('public_key');
     $redirect_url    = site_url('wompi/callback/response');
-    // Partial payments make the Wompi integrity signature fragile if the user can alter the amount.
+    // Partial payments make the integrity signature fragile if the user can alter the amount.
     // For simplicity and reliability, we keep the Wompi widget amount fixed to the outstanding invoice total.
+    // If later you want real partial payments, we should regenerate the widget signature when amount changes.
     $allow_partial   = false;
     $integrity_secret = $gateway->decryptSetting('integrity_secret');
 
@@ -311,10 +315,15 @@ function wompi_ui_scripts()
             var container = document.getElementById('wompi-simple-container');
             if (!form || !container) return;
 
-            // Ensure the widget sits right after the original submit button.
+            // Replace the original Perfex submit button in-place (same location in the DOM).
             var submitBtn = form.querySelector('button[type="submit"]');
-            if (submitBtn && container.parentNode !== submitBtn.parentNode) {
-                submitBtn.parentNode.insertBefore(container, submitBtn.nextSibling);
+            if (submitBtn) {
+                // Move container next to the submit button (same parent), right before it.
+                if (container.parentNode !== submitBtn.parentNode) {
+                    submitBtn.parentNode.insertBefore(container, submitBtn);
+                } else {
+                    submitBtn.parentNode.insertBefore(container, submitBtn);
+                }
             }
 
             var show = selectedModeIsWompi();
@@ -333,26 +342,39 @@ function wompi_ui_scripts()
                 }
             }
 
-            // Partial payments: if disabled, make amount input readonly and set it to invoice total.
+            // Amount field:
+            // - When partial payments are disabled, hide the amount row entirely (and keep value fixed).
+            // - When enabled (not currently used), it would remain visible/editable.
             var amountInput = document.querySelector('#payment_amount') || document.querySelector('input[name="amount"]');
             if (amountInput) {
+                var row = amountInput.closest('.form-group, .col-md-12, .row, tr, .form-item');
                 if (show && !allowPartial) {
                     amountInput.value = (invoiceTotalCents / 100).toFixed(2);
                     amountInput.readOnly = true;
+                    if (row) row.style.display = 'none';
                 } else if (show && allowPartial) {
                     amountInput.readOnly = false;
+                    if (row) row.style.display = '';
                 } else {
                     amountInput.readOnly = false;
+                    if (row) row.style.display = '';
                 }
             }
         }
 
         function bindModeChanges() {
+            // Radios or selects depending on template.
             document.addEventListener('change', function(e) {
                 var t = e.target;
-                if (t && t.name === 'payment_mode') {
-                    toggleSimpleWidget();
-                }
+                if (!t) return;
+                if (t.name === 'payment_mode') toggleSimpleWidget();
+                if (t.id === 'payment_mode' || t.name === 'paymentmode') toggleSimpleWidget();
+            }, true);
+            // Some themes/plugins bind click instead of change.
+            document.addEventListener('click', function(e) {
+                var t = e.target;
+                if (!t) return;
+                if (t.name === 'payment_mode') toggleSimpleWidget();
             }, true);
         }
 
