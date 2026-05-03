@@ -51,14 +51,19 @@ class Wompi_license
         $key = $this->getLicenseKey();
 
         if (empty($key)) {
+            log_message('debug', '[Wompi License] No license key configured.');
             return false;
         }
 
         // Check local cache first
         $cached = $this->_getCached();
         if ($cached !== null) {
+            $cached_at = (int) get_option(self::OPT_PREFIX . 'cached_at');
+            log_message('debug', '[Wompi License] Using cached result valid=' . (isset($cached['valid']) && $cached['valid'] ? '1' : '0') . ' status=' . ($cached['status'] ?? 'n/a') . ' cached_at=' . $cached_at);
             return $cached['valid'] === true;
         }
+
+        log_message('debug', '[Wompi License] Cache miss/expired; calling WHMCS verify.');
 
         // No valid cache — call WHMCS
         $result = $this->_verify($key);
@@ -320,11 +325,13 @@ class Wompi_license
         $cached_at = (int) get_option(self::OPT_PREFIX . 'cached_at');
 
         if ($cached_at === 0 || (time() - $cached_at) > self::CACHE_TTL) {
+            log_message('debug', '[Wompi License] Cache empty/expired cached_at=' . $cached_at);
             return null;
         }
 
         $raw = get_option(self::OPT_PREFIX . 'data');
         if (empty($raw)) {
+            log_message('debug', '[Wompi License] Cache missing data payload.');
             return null;
         }
 
