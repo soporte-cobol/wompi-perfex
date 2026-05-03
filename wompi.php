@@ -367,5 +367,3 @@ function wompi_ui_scripts()
     </script>
     <?php
 }
-    <?php
-}
