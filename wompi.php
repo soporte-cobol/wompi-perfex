@@ -329,6 +329,7 @@ function wompi_ui_scripts()
         var wompiWidgetEnabled = <?php echo $can_render_widget ? 'true' : 'false'; ?>;
         var wompiSignatureEndpoint = <?php echo json_encode(site_url('wompi/callback/get_checkout_data/' . (int) $invoice_id . '/' . $invoice->hash)); ?>;
         var invoiceCurrency = <?php echo json_encode((string) $currency); ?>;
+        var invoiceCurrency = <?php echo json_encode((string) $currency); ?>;
 
         function findPaymentForm() {
             return document.querySelector('#online_payment_form') || document.querySelector('#invoice_payment_form');
@@ -475,6 +476,18 @@ function wompi_ui_scripts()
                     amountInput.readOnly = false;
                     amountInput.style.display = '';
                     if (row) row.style.display = '';
+
+                    // Visual-only: COP is typically integer-only. Force integer UX in the amount input
+                    // while keeping backend math in cents correct (we re-sign using the parsed value).
+                    if (String(invoiceCurrency || '').toUpperCase() === 'COP') {
+                        try {
+                            amountInput.step = '1';
+                            var n = parseAmountToMajorUnits(amountInput.value);
+                            if (n != null) amountInput.value = String(Math.round(n));
+                            var mx = parseAmountToMajorUnits(amountInput.getAttribute('max'));
+                            if (mx != null) amountInput.setAttribute('max', String(Math.round(mx)));
+                        } catch (e) {}
+                    }
                 } else {
                     amountInput.readOnly = false;
                     amountInput.style.display = '';
