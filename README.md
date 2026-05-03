@@ -1,6 +1,6 @@
 # 💳 Wompi Payment Gateway para Perfex CRM
 
-[![Versión](https://img.shields.io/badge/Versión-1.1.0-blue)](https://github.com)
+[![Versión](https://img.shields.io/badge/Versión-1.1.0-blue)](https://github.com/soporte-cobol/wompi-perfex)
 [![Perfex CRM](https://img.shields.io/badge/Perfex%20CRM-2.3.2%2B-green)](https://www.perfexcrm.com)
 [![Wompi](https://img.shields.io/badge/Powered%20by-Wompi%20Bancolombia-orange)](https://wompi.com)
 [![Trial](https://img.shields.io/badge/Trial%20Gratis-30%20días-brightgreen)](https://control.cobol.com.co)
