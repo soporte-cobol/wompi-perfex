@@ -1,0 +1,10 @@
+# Sensitive data
+wompi_credentials.txt
+*.log
+.env
+.DS_Store
+Thumbs.db
+node_modules/
+vendor/
+.idea/
+.vscode/
