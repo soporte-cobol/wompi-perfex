@@ -11,6 +11,21 @@ class Wompi_gateway extends App_gateway
 
         parent::__construct();
 
+        // Perfex loads gateway libraries on the payment gateways settings page.
+        // Trigger license validation there so admins see the real state and logs are emitted.
+        try {
+            if (function_exists('wompi_license_valid')) {
+                $CI = &get_instance();
+                if ($CI && $CI->uri->segment(1) === 'admin'
+                    && $CI->uri->segment(2) === 'settings'
+                    && $CI->input->get('group') === 'payment_gateways') {
+                    wompi_license_valid();
+                }
+            }
+        } catch (Throwable $e) {
+            // Don't break admin pages if validation fails unexpectedly.
+        }
+
         $this->setSettings([
             [
                 'name'  => 'license_key',
@@ -75,4 +90,3 @@ class Wompi_gateway extends App_gateway
         redirect(site_url('invoice/' . $data['invoiceid'] . '/' . $invoice->hash));
     }
 }
-
