@@ -302,6 +302,9 @@ class Wompi_license
 
         $is_valid = in_array($status, self::VALID_STATUSES, true);
 
+        // Force one high-signal line even if only error logs are enabled on the server.
+        log_message('error', '[Wompi License] Verify status=' . $status . ' valid=' . ($is_valid ? '1' : '0') . ' domain=' . $domain . ' ip=' . $ip . ' dir=' . $dir);
+
         log_message('info', '[Wompi License] Result: ' . $status . ' | Valid: ' . ($is_valid ? 'Yes' : 'No'));
 
         return [

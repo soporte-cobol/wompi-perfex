@@ -237,6 +237,8 @@ function wompi_ui_scripts()
         return;
     }
 
+    // Always inject the UI script so we can hide the amount field when Wompi is selected,
+    // even if the license is currently invalid.
     $licensed = wompi_license_valid();
 
     // Get invoice data (client and admin invoice views)
@@ -380,7 +382,10 @@ function wompi_ui_scripts()
             // Amount field:
             // - When partial payments are disabled, hide the amount row entirely (and keep value fixed).
             // - When enabled (not currently used), it would remain visible/editable.
+            // Your invoice template always uses input[name="amount"] inside #online_payment_form.
+            // Keep this targeted first, then fallback to generic selectors.
             var amountInputs = Array.prototype.slice.call(document.querySelectorAll(
+                '#online_payment_form input[name="amount"],' +
                 '#payment_amount,' +
                 'input[name="amount"],' +
                 'input[name="payment_amount"],' +
