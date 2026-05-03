@@ -223,18 +223,10 @@ function wompi_ui_scripts()
         return;
     }
 
+    // If license is invalid, we don't inject the widget (so customers won't pay),
+    // but we also don't hide the payment option to avoid breaking invoice UI.
+    // The actual payment attempt will be blocked by the gateway/callback and show the alert.
     if (!wompi_license_valid()) {
-        ?>
-        <script>
-        (function() {
-            var radios = document.querySelectorAll('input[value="wompi"]');
-            radios.forEach(function(r) {
-                var row = r.closest('.payment-mode-row, .radio, li, tr, label');
-                if (row) row.style.display = 'none';
-            });
-        })();
-        </script>
-        <?php
         return;
     }
 
@@ -314,6 +306,10 @@ function wompi_ui_scripts()
             var radio = document.querySelector('input[type="radio"][name="payment_mode"][value="wompi"]:checked');
             if (radio) return true;
 
+            // Your template uses name="paymentmode"
+            var radio2 = document.querySelector('input[type="radio"][name="paymentmode"][value="wompi"]:checked');
+            if (radio2) return true;
+
             // Some templates use selects
             var select =
                 document.querySelector('select[name="payment_mode"]') ||
@@ -332,11 +328,12 @@ function wompi_ui_scripts()
             if (!form || !container) return;
 
             // Replace the original Perfex submit button in-place (same location in the DOM).
-            var submitBtn = form.querySelector('button[type="submit"]');
+            var submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+            var payButtonWrap = document.getElementById('pay_button');
             if (submitBtn) {
-                // Move container next to the submit button (same parent), right before it.
-                if (container.parentNode !== submitBtn.parentNode) {
-                    submitBtn.parentNode.insertBefore(container, submitBtn);
+                // Prefer inserting where Perfex renders the pay button.
+                if (payButtonWrap && container.parentNode !== payButtonWrap.parentNode) {
+                    payButtonWrap.parentNode.insertBefore(container, payButtonWrap);
                 } else {
                     submitBtn.parentNode.insertBefore(container, submitBtn);
                 }
@@ -356,6 +353,9 @@ function wompi_ui_scripts()
                 } else {
                     submitBtn.style.display = submitBtn.dataset.wompiOriginalDisplay || '';
                 }
+            }
+            if (payButtonWrap) {
+                payButtonWrap.style.display = show ? 'none' : '';
             }
 
             // Amount field:
@@ -397,6 +397,7 @@ function wompi_ui_scripts()
                 var t = e.target;
                 if (!t) return;
                 if (t.name === 'payment_mode') toggleSimpleWidget();
+                if (t.name === 'paymentmode') toggleSimpleWidget();
                 if (t.id === 'payment_mode' || t.name === 'paymentmode') toggleSimpleWidget();
             }, true);
             // Some themes/plugins bind click instead of change.
@@ -404,6 +405,7 @@ function wompi_ui_scripts()
                 var t = e.target;
                 if (!t) return;
                 if (t.name === 'payment_mode') toggleSimpleWidget();
+                if (t.name === 'paymentmode') toggleSimpleWidget();
             }, true);
         }
 
