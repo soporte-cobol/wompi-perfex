@@ -233,7 +233,7 @@ class Wompi_gateway extends App_gateway
         <div class="bg-shape shape-2"></div>
 
         <div class="wompi-card">
-            <img class="wompi-logo" src="https://wompi.com/assets/img/logo-wompi-color.svg" alt="Wompi">
+            <img class="wompi-logo" src="https://wompi.com/assets/downloadble/logos_wompi/Wompi_LogoPrincipal.svg" alt="Wompi">
             
             <div class="loader-wrapper">
                 <div class="loader-ring"></div>
@@ -256,50 +256,46 @@ class Wompi_gateway extends App_gateway
                     <span class="total-value"><?php echo $currency . ' ' . number_format($amount, 2, '.', ','); ?></span>
                 </div>
             </div>
-
-            <div id="wompi-button-container">
-                <form action="">
-                    <script
-                        src="https://checkout.wompi.co/widget.js"
-                        data-render="button"
-                        data-public-key="<?php echo $public_key; ?>"
-                        data-currency="<?php echo $currency; ?>"
-                        data-amount-in-cents="<?php echo $amount_in_cents; ?>"
-                        data-reference="<?php echo $reference; ?>"
-                        data-signature:integrity="<?php echo $signature; ?>"
-                        data-redirect-url="<?php echo $redirect_url; ?>"
-                        data-custom-data:invoice_id="<?php echo $data['invoiceid']; ?>"
-                        data-custom-data:hash="<?php echo $invoice->hash; ?>">
-                    </script>
-                </form>
-            </div>
             
-            <button id="fallback-btn" class="btn-wompi-fallback" onclick="triggerWompi()">Pagar Ahora</button>
+            <button id="fallback-btn" class="btn-wompi-fallback" onclick="openWompi()">Pagar Ahora</button>
         </div>
 
+        <script src="https://checkout.wompi.co/widget.js"></script>
         <script>
-            function triggerWompi() {
-                var btn = document.querySelector('.wompi-button-wrapper button, #wompi-button-container iframe');
-                if (btn) {
-                    btn.click();
-                    return true;
+            var checkout = new WompiCheckout({
+                publicKey: "<?php echo $public_key; ?>",
+                currency: "<?php echo $currency; ?>",
+                amountInCents: <?php echo $amount_in_cents; ?>,
+                reference: "<?php echo $reference; ?>",
+                signature: "<?php echo $signature; ?>",
+                redirectUrl: "<?php echo $redirect_url; ?>",
+                customerData: {
+                    invoice_id: "<?php echo $data['invoiceid']; ?>",
+                    hash: "<?php echo $invoice->hash; ?>"
                 }
-                return false;
+            });
+
+            function openWompi() {
+                checkout.open(function ( result ) {
+                    var transaction = result.transaction;
+                    if (transaction.status === 'APPROVED' || transaction.status === 'DECLINED' || transaction.status === 'VOIDED') {
+                        window.location.href = "<?php echo $redirect_url; ?>?id=" + transaction.id;
+                    }
+                });
             }
 
-            var attempts = 0;
-            var interval = setInterval(function() {
-                attempts++;
-                if (triggerWompi()) {
-                    clearInterval(interval);
-                } else if (attempts >= 20) {
-                    clearInterval(interval);
-                    document.getElementById('fallback-btn').style.display = 'inline-block';
-                    document.querySelector('.status-msg').innerText = 'Listo para pagar';
-                    document.querySelector('.status-sub').innerText = 'Haz clic en el botón de abajo para continuar.';
-                    document.querySelector('.loader-wrapper').style.display = 'none';
-                }
-            }, 300);
+            // Abrir automáticamente al cargar
+            window.onload = function() {
+                setTimeout(function() {
+                    openWompi();
+                    // Si después de 3 segundos no se abrió, mostrar botón de respaldo
+                    setTimeout(function() {
+                        if (!document.querySelector('.wompi-widget-container')) {
+                            document.getElementById('fallback-btn').style.display = 'inline-block';
+                        }
+                    }, 3000);
+                }, 500);
+            };
         </script>
         <?php
         echo payment_gateway_footer();

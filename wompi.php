@@ -244,10 +244,10 @@ function wompi_client_area_scripts()
                 var sel     = document.querySelector('input[name="payment_mode"]:checked');
                 var isWompi = sel && sel.value === 'wompi';
                 
-                // Selector más agresivo para encontrar el contenedor del monto
-                var amountInput = document.querySelector('#payment_amount');
+                // Selector más robusto: busca por ID y por nombre
+                var amountInput = document.querySelector('#payment_amount') || document.querySelector('input[name="amount"]');
                 if (amountInput) {
-                    var amountRow = amountInput.closest('.form-group, .col-md-12, .row, tr');
+                    var amountRow = amountInput.closest('.form-group, .col-md-12, .row, tr, .form-item');
                     if (amountRow) {
                         if (isWompi && !allowPartial) {
                             amountRow.style.setProperty('display', 'none', 'important');

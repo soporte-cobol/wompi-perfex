@@ -189,7 +189,7 @@
 <div class="bg-blob"></div>
 
 <div class="result-card">
-  <img class="wompi-logo" src="https://wompi.com/assets/img/logo-wompi-color.svg" alt="Wompi">
+  <img class="wompi-logo" src="https://wompi.com/assets/downloadble/logos_wompi/Wompi_LogoPrincipal.svg" alt="Wompi">
 
   <?php if ($status === 'APPROVED'): ?>
     <div class="icon-box APPROVED">✓</div>
