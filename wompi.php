@@ -231,39 +231,109 @@ function wompi_client_area_scripts()
 
     $allow_partial = get_option('paymentmethod_wompi_allow_partial_payments');
     ?>
+    <style id="wompi-strict-styles">
+        /* Ocultación agresiva del campo de monto si no se permiten pagos parciales */
+        <?php if (get_option('paymentmethod_wompi_allow_partial_payments') !== '1'): ?>
+        body:has(input[name="payment_mode"][value="wompi"]:checked) #payment_amount,
+        body:has(input[name="payment_mode"][value="wompi"]:checked) input[name="amount"],
+        body:has(input[name="payment_mode"][value="wompi"]:checked) .form-group:has(#payment_amount) {
+            display: none !important;
+        }
+        <?php endif; ?>
+    </style>
+
+    <script src="https://checkout.wompi.co/widget.js"></script>
     <script>
     (function() {
         'use strict';
-        function applyWompiUI() {
-            var selectedMode = document.querySelector('input[name="payment_mode"]:checked');
-            var isWompi = selectedMode && selectedMode.value === 'wompi';
-            var allowPartial = <?php echo (get_option('paymentmethod_wompi_allow_partial_payments') == '1') ? 'true' : 'false'; ?>;
+        
+        function initInstantWompi() {
+            var form = document.querySelector('#online_payment_form');
+            if (!form) return;
 
-            // 1. Ocultar el campo de monto si no se permiten pagos parciales
-            var amountInput = document.querySelector('#payment_amount') || document.querySelector('input[name="amount"]');
-            if (amountInput) {
-                var amountRow = amountInput.closest('.form-group, .col-md-12, .row, tr, .form-item');
-                if (amountRow) {
-                    if (isWompi && !allowPartial) {
-                        amountRow.style.setProperty('display', 'none', 'important');
-                    } else {
-                        amountRow.style.display = '';
+            form.addEventListener('submit', function(e) {
+                var selectedMode = document.querySelector('input[name="payment_mode"]:checked');
+                if (selectedMode && selectedMode.value === 'wompi') {
+                    // Si el pago parcial está desactivado, activamos el Instant Checkout
+                    var allowPartial = <?php echo (get_option('paymentmethod_wompi_allow_partial_payments') == '1') ? 'true' : 'false'; ?>;
+                    if (!allowPartial) {
+                        e.preventDefault();
+                        startInstantCheckout(form);
                     }
+                }
+            });
+
+            // Cambiar texto del botón
+            function updateButton() {
+                var sel = document.querySelector('input[name="payment_mode"]:checked');
+                var btn = form.querySelector('button[type="submit"]');
+                if (btn && sel && sel.value === 'wompi') {
+                    if (!btn.dataset.originalText) btn.dataset.originalText = btn.innerText;
+                    btn.innerText = 'Pagar con Wompi Ahora 💳';
+                } else if (btn && btn.dataset.originalText) {
+                    btn.innerText = btn.dataset.originalText;
                 }
             }
 
-            // 2. Mejorar el texto del botón de pago
-            var submitBtn = document.querySelector('#online_payment_form button[type="submit"], .pay-now-btn');
-            if (submitBtn && isWompi) {
-                if (!submitBtn.dataset.originalText) submitBtn.dataset.originalText = submitBtn.innerText;
-                submitBtn.innerText = 'Pagar con Wompi 💳';
-            } else if (submitBtn && submitBtn.dataset.originalText) {
-                submitBtn.innerText = submitBtn.dataset.originalText;
-            }
+            document.querySelectorAll('input[name="payment_mode"]').forEach(function(r) {
+                r.addEventListener('change', updateButton);
+            });
+            updateButton();
         }
 
-        setInterval(applyWompiUI, 500);
-        applyWompiUI();
+        function startInstantCheckout(form) {
+            var invoiceId = "<?php echo $CI->uri->segment(2); ?>";
+            var hash = "<?php echo $CI->uri->segment(3); ?>";
+            
+            // Si los segmentos no son correctos, dejamos que el form siga su curso normal (fallback)
+            if (!invoiceId || !hash) {
+                form.submit();
+                return;
+            }
+
+            var btn = form.querySelector('button[type="submit"]');
+            var originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = 'Cargando Wompi...';
+
+            fetch("<?php echo site_url('wompi/callback/get_checkout_data/'); ?>" + invoiceId + "/" + hash)
+                .then(response => response.json())
+                .then(data => {
+                    var checkout = new WompiCheckout({
+                        publicKey: data.public_key,
+                        currency: data.currency,
+                        amountInCents: data.amount_in_cents,
+                        reference: data.reference,
+                        signature: data.signature,
+                        redirectUrl: data.redirect_url,
+                        customerData: {
+                            invoice_id: data.invoice_id,
+                            hash: data.hash
+                        }
+                    });
+
+                    checkout.open(function (result) {
+                        var transaction = result.transaction;
+                        if (transaction.status === 'APPROVED' || transaction.status === 'DECLINED' || transaction.status === 'VOIDED') {
+                            window.location.href = data.redirect_url + "?id=" + transaction.id;
+                        } else {
+                            btn.disabled = false;
+                            btn.innerText = originalText;
+                        }
+                    });
+                })
+                .catch(err => {
+                    console.error("Wompi Error:", err);
+                    form.submit(); // Fallback al método tradicional si falla el AJAX
+                });
+        }
+
+        // Ejecutar
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initInstantWompi);
+        } else {
+            initInstantWompi();
+        }
     })();
     </script>
     <?php

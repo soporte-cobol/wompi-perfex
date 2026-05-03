@@ -109,6 +109,39 @@ class Callback extends App_Controller
         ]);
     }
 
+    /**
+     * AJAX Endpoint: Get checkout data for instant modal trigger.
+     * URL: /wompi/callback/get_checkout_data/<invoice_id>/<hash>
+     */
+    public function get_checkout_data($invoice_id, $hash)
+    {
+        $invoice = $this->invoices_model->get($invoice_id);
+        if (!$invoice || $invoice->hash !== $hash) {
+            header('HTTP/1.1 403 Forbidden');
+            exit;
+        }
+
+        $amount = $invoice->total_left_to_pay;
+        $currency = $invoice->currency_name;
+        $amount_in_cents = (int) round(floatval($amount) * 100);
+        $reference = $invoice_id . '_' . time();
+        $integrity_secret = $this->wompi_gateway->decryptSetting('integrity_secret');
+        $signature = hash('sha256', $reference . $amount_in_cents . $currency . $integrity_secret);
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'public_key'      => $this->wompi_gateway->getSetting('public_key'),
+            'amount_in_cents' => $amount_in_cents,
+            'currency'        => $currency,
+            'reference'       => $reference,
+            'signature'       => $signature,
+            'redirect_url'    => site_url('wompi/callback/response'),
+            'invoice_id'      => $invoice_id,
+            'hash'            => $hash,
+        ]);
+        exit;
+    }
+
     // -------------------------------------------------------------------------
     // 2. WEBHOOK — Notificación asíncrona de servidor a servidor
     // -------------------------------------------------------------------------
