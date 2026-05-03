@@ -467,11 +467,52 @@ function wompi_ui_scripts()
             }, 250);
         }
 
+        function parseAmountToMajorUnits(amountValue) {
+            // Accept values like:
+            //  - "4500000.00"
+            //  - "4,500,000.00"
+            //  - "4.500.000,00"
+            //  - "4500000"
+            var raw = String(amountValue == null ? '' : amountValue).trim();
+            if (!raw) return null;
+
+            // Remove currency symbols/spaces
+            raw = raw.replace(/[^\d.,-]/g, '');
+
+            // If both separators exist, assume the last one is the decimal separator
+            var lastComma = raw.lastIndexOf(',');
+            var lastDot = raw.lastIndexOf('.');
+            var decSep = null;
+            if (lastComma !== -1 && lastDot !== -1) {
+                decSep = lastComma > lastDot ? ',' : '.';
+            } else if (lastComma !== -1) {
+                // If only comma exists, treat as decimal when it looks like cents (two digits after)
+                decSep = (raw.length - lastComma - 1) === 2 ? ',' : null;
+            } else if (lastDot !== -1) {
+                decSep = (raw.length - lastDot - 1) === 2 ? '.' : null;
+            }
+
+            if (decSep) {
+                var parts = raw.split(decSep);
+                var intPart = parts[0].replace(/[.,]/g, '');
+                var fracPart = (parts[1] || '').replace(/[^\d]/g, '').slice(0, 2);
+                while (fracPart.length < 2) fracPart += '0';
+                raw = intPart + '.' + fracPart;
+            } else {
+                // No clear decimal separator; remove thousand separators and parse as integer
+                raw = raw.replace(/[.,]/g, '');
+            }
+
+            var n = parseFloat(raw);
+            if (!isFinite(n)) return null;
+            return n;
+        }
+
         function refreshWidgetForAmount(amountValue) {
             if (!wompiSignatureEndpoint) return;
 
-            var parsed = parseFloat(String(amountValue).replace(',', '.'));
-            if (!isFinite(parsed) || parsed <= 0) return;
+            var parsed = parseAmountToMajorUnits(amountValue);
+            if (parsed == null || parsed <= 0) return;
 
             // Avoid hammering the endpoint if the value didn't change meaningfully.
             var key = parsed.toFixed(2);
@@ -552,7 +593,10 @@ function wompi_ui_scripts()
             document.addEventListener('input', function(e) {
                 var t = e.target;
                 if (!t) return;
-                if (t.name === 'amount') toggleSimpleWidget();
+                if (t.name === 'amount') {
+                    // Don't rely on "toggle" timing; refresh signature as the user types.
+                    scheduleWidgetRefresh(t.value);
+                }
             }, true);
         }
 
