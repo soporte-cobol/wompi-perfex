@@ -247,13 +247,15 @@ function wompi_ui_scripts()
     $currency        = $invoice->currency_name;
     $public_key      = $gateway->getSetting('public_key');
     $redirect_url    = site_url('wompi/callback/response');
-    // Partial payments make the integrity signature fragile if the user can alter the amount.
-    // For simplicity and reliability, we keep the Wompi widget amount fixed to the outstanding invoice total.
-    // If later you want real partial payments, we should regenerate the widget signature when amount changes.
-    $allow_partial   = false;
+    // Partial payments require regenerating the Wompi integrity signature when the amount changes.
+    // For now:
+    // - If partial payments are OFF: we inject the Wompi widget and hide the amount field.
+    // - If partial payments are ON: we do NOT inject the widget (falls back to Perfex submit flow),
+    //   because a fixed widget signature would break when the user edits the amount.
+    $allow_partial   = (get_option('paymentmethod_wompi_allow_partial_payments') === '1');
     $integrity_secret = $gateway->decryptSetting('integrity_secret');
 
-    $can_render_widget = $licensed && !empty($public_key) && !empty($integrity_secret);
+    $can_render_widget = $licensed && !$allow_partial && !empty($public_key) && !empty($integrity_secret);
 
     ?>
     <style id="wompi-simple-styles">
@@ -295,6 +297,7 @@ function wompi_ui_scripts()
         var allowPartial = <?php echo $allow_partial ? 'true' : 'false'; ?>;
         var invoiceTotalCents = <?php echo (int) round(floatval($invoice->total_left_to_pay) * 100); ?>;
         var wompiLicensed = <?php echo $licensed ? 'true' : 'false'; ?>;
+        var wompiWidgetEnabled = <?php echo $can_render_widget ? 'true' : 'false'; ?>;
 
         function findPaymentForm() {
             return document.querySelector('#online_payment_form') || document.querySelector('#invoice_payment_form');
@@ -342,9 +345,9 @@ function wompi_ui_scripts()
             container.style.display = show ? 'block' : 'none';
             container.setAttribute('aria-hidden', show ? 'false' : 'true');
 
-            // If not licensed, don't try to replace the submit button with a missing widget.
-            // Keep the standard Perfex flow so it can show the license error on submit.
-            if (!wompiLicensed) {
+            // If the widget isn't enabled (unlicensed, missing keys, or partial payments ON),
+            // keep the standard Perfex submit flow.
+            if (!wompiWidgetEnabled) {
                 if (payButtonWrap) payButtonWrap.style.display = '';
                 if (submitBtn) submitBtn.style.display = submitBtn.dataset.wompiOriginalDisplay || '';
                 return;

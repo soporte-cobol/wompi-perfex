@@ -163,15 +163,39 @@ class Wompi_license
      */
     private function _verify($license_key)
     {
-        $domain    = $_SERVER['HTTP_HOST']   ?? 'unknown';
+        $domain    = $_SERVER['HTTP_HOST']   ?? parse_url(base_url(), PHP_URL_HOST) ?? 'unknown';
         // Normalize domain: remove port and www.
         $domain    = preg_replace('/:[0-9]+$/', '', $domain);
         $domain    = preg_replace('/^www\./', '', $domain);
 
-        $ip        = $_SERVER['SERVER_ADDR'] ?? ($_SERVER['LOCAL_ADDR'] ?? '127.0.0.1');
+        // On shared hosting/proxies, SERVER_ADDR can be a private/internal IP.
+        // Prefer resolving the public IP from the domain when possible.
+        $ip = '';
+        if (!empty($domain)) {
+            $resolved = @gethostbyname($domain);
+            if (!empty($resolved) && $resolved !== $domain) {
+                $ip = $resolved;
+            }
+        }
+        if (empty($ip)) {
+            $ip = $_SERVER['SERVER_ADDR'] ?? ($_SERVER['LOCAL_ADDR'] ?? '');
+        }
+        if (empty($ip)) {
+            $ip = '127.0.0.1';
+        }
         
         // Normalize directory path: use forward slashes and remove trailing slash
         $dir       = str_replace('\\', '/', rtrim(FCPATH ?? BASEPATH, '/\\'));
+        // Perfex lives under /public_html/perfex_crm; WHMCS license often stores /public_html.
+        // Strip common trailing app folder names to match WHMCS "Valid Directories".
+        $dir_lc = strtolower($dir);
+        foreach (['/perfex_crm', '/public', '/crm'] as $suffix) {
+            $len = strlen($suffix);
+            if ($len > 0 && substr($dir_lc, -$len) === $suffix) {
+                $dir = substr($dir, 0, -$len);
+                break;
+            }
+        }
         
         $local_key = md5($license_key . $domain . $ip . $dir);
 
