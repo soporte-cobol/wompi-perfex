@@ -69,13 +69,22 @@ class Callback extends App_Controller
         $hash = $transaction['custom_data']['hash']
             ?? $transaction['customer_data']['hash']
             ?? '';
+
+        // Fallback: derive invoice_id from our reference convention "<invoice_id>_<timestamp>"
+        // This is robust when Wompi does not echo back customer/custom data fields in the transaction payload.
+        if (empty($invoice_id)) {
+            $ref = (string) ($transaction['reference'] ?? '');
+            if (preg_match('/^([0-9]+)_/', $ref, $m)) {
+                $invoice_id = $m[1];
+            }
+        }
         $amount     = ($transaction['amount_in_cents'] ?? 0) / 100;
         $currency   = $transaction['currency']                  ?? 'COP';
         $tx_id      = $transaction['id']                        ?? $transaction_id;
 
-        // Validate we have all the data we need
-        if (empty($invoice_id) || empty($hash)) {
-            log_message('error', '[Wompi] response(): missing custom_data for tx=' . $tx_id . ' status=' . $status);
+        // Validate we have all the data we need. If hash is missing we will fetch it from the invoice record.
+        if (empty($invoice_id)) {
+            log_message('error', '[Wompi] response(): missing invoice_id for tx=' . $tx_id . ' status=' . $status);
             $this->_render_result([
                 'status'         => 'ERROR',
                 'transaction_id' => $tx_id,
@@ -87,10 +96,24 @@ class Callback extends App_Controller
             return;
         }
 
-        // Make sure the invoice actually exists and the hash matches
+        // Make sure the invoice actually exists and the hash matches (when provided)
         $invoice = $this->invoices_model->get($invoice_id);
-        if (!$invoice || $invoice->hash !== $hash) {
-            log_message('error', '[Wompi] response(): invoice mismatch. invoice_id=' . $invoice_id . ' tx=' . $tx_id);
+        if (!$invoice) {
+            log_message('error', '[Wompi] response(): invoice not found. invoice_id=' . $invoice_id . ' tx=' . $tx_id);
+            $this->_render_result([
+                'status'         => 'ERROR',
+                'transaction_id' => $tx_id,
+                'amount'         => 0,
+                'currency'       => 'COP',
+                'invoice_url'    => site_url(),
+                'redirect_delay' => 5,
+            ]);
+            return;
+        }
+        if (empty($hash)) {
+            $hash = $invoice->hash;
+        } elseif ($invoice->hash !== $hash) {
+            log_message('error', '[Wompi] response(): invoice hash mismatch. invoice_id=' . $invoice_id . ' tx=' . $tx_id);
             $this->_render_result([
                 'status'         => 'ERROR',
                 'transaction_id' => $tx_id,
