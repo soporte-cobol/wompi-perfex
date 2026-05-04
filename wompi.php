@@ -312,8 +312,8 @@ function wompi_ui_scripts()
                         data-reference="<?php echo htmlspecialchars($reference, ENT_QUOTES, 'UTF-8'); ?>"
                         data-signature:integrity="<?php echo htmlspecialchars($signature, ENT_QUOTES, 'UTF-8'); ?>"
                         data-redirect-url="<?php echo htmlspecialchars($redirect_url, ENT_QUOTES, 'UTF-8'); ?>"
-                        data-custom-data:invoice_id="<?php echo (int) $invoice_id; ?>"
-                        data-custom-data:hash="<?php echo htmlspecialchars($invoice->hash, ENT_QUOTES, 'UTF-8'); ?>">
+                        data-customer-data:invoice_id="<?php echo (int) $invoice_id; ?>"
+                        data-customer-data:hash="<?php echo htmlspecialchars($invoice->hash, ENT_QUOTES, 'UTF-8'); ?>">
                     </script>
                 </form>
             </div>
@@ -628,8 +628,8 @@ function wompi_ui_scripts()
             script.setAttribute('data-reference', String(data.reference));
             script.setAttribute('data-signature:integrity', String(data.signature));
             script.setAttribute('data-redirect-url', String(data.redirect_url || ''));
-            script.setAttribute('data-custom-data:invoice_id', String(data.invoice_id || ''));
-            script.setAttribute('data-custom-data:hash', String(data.hash || ''));
+            script.setAttribute('data-customer-data:invoice_id', String(data.invoice_id || ''));
+            script.setAttribute('data-customer-data:hash', String(data.hash || ''));
             form.appendChild(script);
             wrap.appendChild(form);
         }

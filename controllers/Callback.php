@@ -60,9 +60,15 @@ class Callback extends App_Controller
             return;
         }
 
-        $status     = $transaction['status']                    ?? '';
-        $invoice_id = $transaction['custom_data']['invoice_id'] ?? '';
-        $hash       = $transaction['custom_data']['hash']       ?? '';
+        $status     = $transaction['status'] ?? '';
+
+        // Wompi Widget returns this as customer_data in many integrations. Keep backward-compat with custom_data.
+        $invoice_id = $transaction['custom_data']['invoice_id']
+            ?? $transaction['customer_data']['invoice_id']
+            ?? '';
+        $hash = $transaction['custom_data']['hash']
+            ?? $transaction['customer_data']['hash']
+            ?? '';
         $amount     = ($transaction['amount_in_cents'] ?? 0) / 100;
         $currency   = $transaction['currency']                  ?? 'COP';
         $tx_id      = $transaction['id']                        ?? $transaction_id;
@@ -214,7 +220,9 @@ class Callback extends App_Controller
         $transaction = $payload['data']['transaction'];
         $status      = $transaction['status']          ?? '';
         $tx_id       = $transaction['id']              ?? '';
-        $invoice_id  = $transaction['custom_data']['invoice_id'] ?? '';
+        $invoice_id  = $transaction['custom_data']['invoice_id']
+            ?? $transaction['customer_data']['invoice_id']
+            ?? '';
         $amount      = ($transaction['amount_in_cents'] ?? 0) / 100;
 
         if (empty($invoice_id) || empty($tx_id)) {
