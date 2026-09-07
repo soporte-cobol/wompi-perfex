@@ -46,15 +46,15 @@ class Wompi_gateway extends App_gateway
                 'encrypted' => true,
             ],
             [
-                // Wompi "integrity secret" used to sign the checkout widget.
-                'name'      => 'integrity_secret',
-                'label'     => 'settings_paymentmethod_wompi_integrity_secret',
-                'encrypted' => true,
-            ],
-            [
                 // Wompi events/webhooks secret for signature verification.
                 'name'      => 'events_secret',
                 'label'     => 'settings_paymentmethod_wompi_events_secret',
+                'encrypted' => true,
+            ],
+            [
+                // Wompi "integrity secret" used to sign the checkout widget.
+                'name'      => 'integrity_secret',
+                'label'     => 'settings_paymentmethod_wompi_integrity_secret',
                 'encrypted' => true,
             ],
             [
@@ -90,3 +90,4 @@ class Wompi_gateway extends App_gateway
         redirect(site_url('invoice/' . $data['invoiceid'] . '/' . $invoice->hash));
     }
 }
+
