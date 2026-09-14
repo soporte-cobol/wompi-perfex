@@ -294,9 +294,26 @@ function wompi_ui_scripts()
     $visa_logo        = site_url('wompi/callback/logo/visa');
     $mastercard_logo  = site_url('wompi/callback/logo/mastercard');
 
+    // Check if the invoice is already paid (status = 2)
+    $is_paid = ($invoice->status == 2 || $invoice->status == '2');
+    $wompi_payment = null;
+
+    if ($is_paid) {
+        // Query if there's any payment records for this invoice
+        $CI->db->where('invoiceid', $invoice_id);
+        $CI->db->where('paymentmode', 'wompi');
+        $wompi_payment = $CI->db->get(db_prefix() . 'invoicepaymentrecords')->row();
+
+        if (!$wompi_payment) {
+            // Fallback: get any payment record
+            $CI->db->where('invoiceid', $invoice_id);
+            $wompi_payment = $CI->db->get(db_prefix() . 'invoicepaymentrecords')->row();
+        }
+    }
+
     ?>
     <style id="wompi-premium-styles">
-        /* Base Premium Styling for Wompi Checkout */
+        /* Base Premium Styling for Wompi Checkout & Confirmation */
         .wompi-premium-panel {
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -561,8 +578,52 @@ function wompi_ui_scripts()
         }
     </style>
 
+    <?php if ($is_paid): ?>
+        <!-- Beautiful Paid Confirmation Card -->
+        <div class="wompi-premium-panel wompi-premium-paid-card" style="margin-top: 15px; border-color: #a7f3d0; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.05); display: none;">
+            <div class="wompi-premium-header" style="border-bottom-color: #ecfdf5;">
+                <h4 class="wompi-premium-title" style="color: #059669;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981; vertical-align: middle; margin-right: 6px; display: inline-block;">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Orden de Compra Pagada
+                </h4>
+                <span class="wompi-secure-badge" style="background: #ecfdf5; color: #047857; border-color: #a7f3d0; font-weight: 700;">
+                    Pago Confirmado
+                </span>
+            </div>
+            
+            <div class="wompi-paid-details" style="font-size: 13px; color: #475569; line-height: 1.6;">
+                <p style="margin: 0 0 12px;">Esta factura ha sido liquidada de forma segura mediante nuestra pasarela. El saldo actual es de <strong>$0.00</strong>.</p>
+                <?php if ($wompi_payment): ?>
+                    <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 14px; margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 6px;">
+                            <span style="color: #64748b; font-weight: 500;">ID de Aprobación:</span>
+                            <strong style="color: #0f172a; font-family: monospace; font-size: 12px;"><?php echo htmlspecialchars($wompi_payment->transactionid ?: 'N/A'); ?></strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 6px;">
+                            <span style="color: #64748b; font-weight: 500;">Fecha de Pago:</span>
+                            <strong style="color: #0f172a;"><?php echo date('d/m/Y h:i A', strtotime($wompi_payment->date)); ?></strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-top: 2px;">
+                            <span style="color: #64748b; font-weight: 500;">Monto Recibido:</span>
+                            <strong style="color: #059669; font-size: 14px;"><?php echo htmlspecialchars($currency) . ' ' . number_format($wompi_payment->amount, 2, '.', ','); ?></strong>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 14px; margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #64748b; font-weight: 500;">Estado de Factura:</span>
+                            <strong style="color: #059669; font-size: 13px;">Completado / Pagado</strong>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div id="wompi-simple-container" aria-hidden="true">
-        <?php if ($can_render_widget): ?>
+        <?php if ($can_render_widget && !$is_paid): ?>
             <!-- Hidden official Wompi form (visually hidden but technically active for script dimensions) -->
             <div class="wompi-button-wrapper wompi-hidden-accessible">
                 <form id="wompi-real-form">
@@ -662,7 +723,7 @@ function wompi_ui_scripts()
         var wompiWidgetEnabled = <?php echo $can_render_widget ? 'true' : 'false'; ?>;
         var wompiSignatureEndpoint = <?php echo json_encode(site_url('wompi/callback/get_checkout_data/' . (int) $invoice_id . '/' . $invoice->hash)); ?>;
         var invoiceCurrency = <?php echo json_encode((string) $currency); ?>;
-        var invoiceCurrency = <?php echo json_encode((string) $currency); ?>;
+        var isPaid = <?php echo $is_paid ? 'true' : 'false'; ?>;
 
         function findPaymentForm() {
             return document.querySelector('#online_payment_form') || document.querySelector('#invoice_payment_form');
@@ -755,6 +816,8 @@ function wompi_ui_scripts()
         }
 
         function toggleSimpleWidget() {
+            if (isPaid) return; // Never run toggle on paid invoices
+
             var form = findPaymentForm();
             var container = document.getElementById('wompi-simple-container');
             if (!form || !container) return;
@@ -1030,14 +1093,39 @@ function wompi_ui_scripts()
             resetPremiumButton();
         });
 
+        // Safe DOM placement of the Paid Confirmation Card inside the invoice view
+        function placePaidCard() {
+            try {
+                var card = document.querySelector('.wompi-premium-paid-card');
+                if (!card) return;
+
+                // Find public client invoice or admin preview main panels
+                var container = document.querySelector('.invoice') 
+                    || document.querySelector('.invoice-preview') 
+                    || document.querySelector('.panel-body')
+                    || document.querySelector('.col-md-12')
+                    || document.querySelector('.main-content')
+                    || document.querySelector('main');
+
+                if (container) {
+                    container.appendChild(card);
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'block'; // fallback
+                }
+            } catch (e) {}
+        }
+
         function bindModeChanges() {
+            if (isPaid) return; // Paid invoices require zero dynamic UI changes or listeners
+
             // Radios or selects depending on template.
             document.addEventListener('change', function(e) {
                 var t = e.target;
                 if (!t) return;
                 if (t.name === 'payment_mode') toggleSimpleWidget();
                 if (t.name === 'paymentmode') toggleSimpleWidget();
-                if (t.id === 'payment_mode' || t.name === 'paymentmode') toggleSimpleWidget();
+                if (t.id === 'pm_wompi' || t.id === 'payment_mode') toggleSimpleWidget();
                 if (t.name === 'amount') toggleSimpleWidget();
             }, true);
             // Some themes/plugins bind click instead of change.
@@ -1074,6 +1162,11 @@ function wompi_ui_scripts()
 
             toggleSimpleWidget();
             wompiStripTrailingZeros();
+            
+            // If the invoice is paid, place our beautiful card dynamically inside the main panel
+            if (isPaid) {
+                placePaidCard();
+            }
 
             // Some themes manipulate DOM after load; keep it in sync briefly.
             var tries = 0;
@@ -1081,7 +1174,10 @@ function wompi_ui_scripts()
                 toggleSimpleWidget();
                 wompiStripTrailingZeros();
                 tries++;
-                if (tries >= 10) clearInterval(iv);
+                if (tries >= 10) {
+                    clearInterval(iv);
+                    if (isPaid) placePaidCard(); // re-ensure placement on late paints
+                }
             }, 300);
 
             // Some Perfex themes auto-check the only payment method after DOM ready.
