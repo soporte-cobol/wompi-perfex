@@ -347,43 +347,45 @@ function wompi_ui_scripts()
         /* Grid of logos with hover states */
         .wompi-logos-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 8px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
             margin-bottom: 20px;
         }
         .wompi-logo-item {
             background: #f8fafc;
             border: 1px solid #f1f5f9;
-            border-radius: 12px;
-            padding: 10px 4px;
+            border-radius: 14px;
+            padding: 16px 12px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
-            min-height: 64px;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            min-height: 94px;
         }
         .wompi-logo-item:hover {
-            background: #f1f5f9;
+            background: #ffffff;
             border-color: #cbd5e1;
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.04);
         }
         .wompi-logo-img {
-            max-height: 34px;
-            max-width: 85%;
+            max-height: 48px;
+            max-width: 90%;
             object-fit: contain;
             filter: grayscale(10%) contrast(105%);
-            transition: all 0.2s ease;
+            transition: all 0.25s ease;
         }
         .wompi-logo-item:hover .wompi-logo-img {
             filter: grayscale(0%) contrast(110%);
         }
         .wompi-logo-caption {
-            font-size: 8px;
-            color: #64748b;
+            font-size: 8.5px;
+            color: #475569;
             margin-top: 8px;
-            font-weight: 600;
+            font-weight: 700;
             text-align: center;
+            letter-spacing: 0.1px;
         }
         
         /* Premium custom button */
@@ -507,10 +509,14 @@ function wompi_ui_scripts()
         /* Responsive adjustments */
         @media (max-width: 480px) {
             .wompi-logos-grid {
-                grid-template-columns: repeat(3, 1fr);
+                grid-template-columns: repeat(2, 1fr);
             }
-            .wompi-logo-item:nth-child(n+4) {
-                grid-column: span 1;
+            .wompi-logo-item {
+                min-height: 76px;
+                padding: 12px 8px;
+            }
+            .wompi-logo-img {
+                max-height: 38px;
             }
             .wompi-premium-header {
                 flex-direction: column;
