@@ -287,16 +287,226 @@ function wompi_ui_scripts()
     $can_render_widget = $licensed && !empty($public_key) && !empty($integrity_secret);
 
     ?>
-    <style id="wompi-simple-styles">
-        /* Keep this minimal on purpose: we only toggle visibility with JS */
-        #wompi-simple-container { display: none; margin-top: 12px; }
-        #wompi-simple-container .wompi-button-wrapper button { width: 100%; }
+    <style id="wompi-premium-styles">
+        /* Base Premium Styling for Wompi Checkout */
+        .wompi-premium-panel {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            text-align: left;
+        }
+        .wompi-premium-panel:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            border-color: #cbd5e1;
+        }
+        .wompi-premium-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            border-bottom: 1px dashed #e2e8f0;
+            padding-bottom: 14px;
+        }
+        .wompi-premium-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .wompi-premium-title svg {
+            color: #6366f1;
+        }
+        .wompi-secure-badge {
+            font-size: 11px;
+            background: #f0fdf4;
+            color: #166534;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            border: 1px solid #bbf7d0;
+        }
+        
+        /* Grid of logos with hover states */
+        .wompi-logos-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .wompi-logo-item {
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+            border-radius: 10px;
+            padding: 8px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            min-height: 48px;
+        }
+        .wompi-logo-item:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+        }
+        .wompi-logo-img {
+            max-height: 20px;
+            max-width: 85%;
+            object-fit: contain;
+            filter: grayscale(10%) contrast(105%);
+            transition: all 0.2s ease;
+        }
+        .wompi-logo-item:hover .wompi-logo-img {
+            filter: grayscale(0%) contrast(110%);
+        }
+        .wompi-logo-caption {
+            font-size: 8px;
+            color: #64748b;
+            margin-top: 5px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        /* Premium custom button */
+        .wompi-btn-premium {
+            width: 100%;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+            text-transform: none !important;
+            letter-spacing: 0.1px;
+        }
+        .wompi-btn-premium:hover {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
+            color: #ffffff !important;
+        }
+        .wompi-btn-premium:active {
+            transform: translateY(0);
+        }
+        
+        /* Shimmer reflection animation */
+        .wompi-btn-premium::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 30%;
+            height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-25deg);
+            animation: wompiShimmer 5s infinite;
+        }
+        @keyframes wompiShimmer {
+            0% { left: -150%; }
+            30% { left: 150%; }
+            100% { left: 150%; }
+        }
+        
+        /* Loading spinner */
+        .wompi-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            border-radius: 50%;
+            border-top-color: #ffffff;
+            animation: wompiSpin 0.8s linear infinite;
+            display: none;
+        }
+        @keyframes wompiSpin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Active loading state */
+        .wompi-btn-premium.loading {
+            pointer-events: none;
+            opacity: 0.9;
+            background: #1e293b;
+        }
+        .wompi-btn-premium.loading .wompi-spinner {
+            display: inline-block;
+        }
+        .wompi-btn-premium.loading .wompi-btn-icon {
+            display: none;
+        }
+        
+        .wompi-btn-icon {
+            transition: transform 0.2s ease;
+        }
+        .wompi-btn-premium:hover .wompi-btn-icon {
+            transform: translateX(1px);
+        }
+        
+        /* Footnote */
+        .wompi-premium-footer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 14px;
+            font-size: 11px;
+            color: #64748b;
+        }
+        .wompi-premium-footer svg {
+            color: #94a3b8;
+        }
+        
+        /* Hide Wompi's default button completely */
+        #wompi-simple-container .wompi-button-wrapper button.wompi-button {
+            display: none !important;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .wompi-logos-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .wompi-logo-item:nth-child(n+4) {
+                grid-column: span 1;
+            }
+            .wompi-premium-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .wompi-secure-badge {
+                align-self: flex-start;
+            }
+        }
     </style>
 
     <div id="wompi-simple-container" aria-hidden="true">
         <?php if ($can_render_widget): ?>
-            <div class="wompi-button-wrapper">
-                <form>
+            <!-- Hidden official Wompi form -->
+            <div class="wompi-button-wrapper" style="display: none !important;">
+                <form id="wompi-real-form">
                     <?php
                     // Default amount for the widget is the current outstanding invoice value (in cents).
                     $amount_in_cents = (int) round(floatval($invoice->total_left_to_pay) * 100);
@@ -316,6 +526,70 @@ function wompi_ui_scripts()
                         data-customer-data:hash="<?php echo htmlspecialchars($invoice->hash, ENT_QUOTES, 'UTF-8'); ?>">
                     </script>
                 </form>
+            </div>
+
+            <!-- Beautiful Premium Panel -->
+            <div class="wompi-premium-panel">
+                <div class="wompi-premium-header">
+                    <h4 class="wompi-premium-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        Métodos de Pago Disponibles
+                    </h4>
+                    <span class="wompi-secure-badge">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Pago 100% Seguro
+                    </span>
+                </div>
+                
+                <div class="wompi-logos-grid">
+                    <div class="wompi-logo-item" title="PSE - Pagos Seguros en Línea">
+                        <img class="wompi-logo-img" src="https://multimedia.epayco.co/epayco-landing/v2/icons/pse.svg" alt="PSE">
+                        <span class="wompi-logo-caption">PSE / Bancos</span>
+                    </div>
+                    <div class="wompi-logo-item" title="Bancolombia">
+                        <img class="wompi-logo-img" src="https://multimedia.epayco.co/epayco-landing/v2/icons/bancolombia.svg" alt="Bancolombia">
+                        <span class="wompi-logo-caption">Bancolombia</span>
+                    </div>
+                    <div class="wompi-logo-item" title="Nequi">
+                        <img class="wompi-logo-img" src="https://multimedia.epayco.co/epayco-landing/v2/icons/nequi.svg" alt="Nequi">
+                        <span class="wompi-logo-caption">Nequi</span>
+                    </div>
+                    <div class="wompi-logo-item" title="Daviplata">
+                        <img class="wompi-logo-img" src="https://multimedia.epayco.co/epayco-landing/v2/icons/daviplata.svg" alt="Daviplata">
+                        <span class="wompi-logo-caption">Daviplata</span>
+                    </div>
+                    <div class="wompi-logo-item" title="Tarjetas de Crédito y Débito">
+                        <svg class="wompi-logo-img" width="28" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="max-height: 20px;">
+                            <rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="2" y1="10" x2="22" y2="10"></line>
+                        </svg>
+                        <span class="wompi-logo-caption">Tarjetas</span>
+                    </div>
+                </div>
+                
+                <div class="wompi-premium-button-container">
+                    <button type="button" class="wompi-btn-premium" id="wompi-premium-btn">
+                        <div class="wompi-spinner"></div>
+                        <svg class="wompi-btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <span id="wompi-btn-text">Pagar Factura de Forma Segura</span>
+                    </button>
+                </div>
+                
+                <div class="wompi-premium-footer">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span>Respaldado por Bancolombia · Conexión Cifrada SSL</span>
+                </div>
             </div>
         <?php endif; ?>
     </div>

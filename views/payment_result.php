@@ -49,13 +49,32 @@
     -webkit-backdrop-filter: blur(25px);
     border: 1px solid var(--glass-border);
     border-radius: 32px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
     padding: 56px;
     max-width: 480px;
     width: 90%;
     text-align: center;
     animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
+    transition: box-shadow 0.5s ease, transform 0.5s ease;
+  }
+
+  /* Glow Halos based on Status */
+  .result-card.APPROVED {
+    box-shadow: 0 30px 70px -15px rgba(16, 185, 129, 0.18), 0 0 100px -10px rgba(16, 185, 129, 0.1), 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+  }
+  .result-card.PENDING {
+    box-shadow: 0 30px 70px -15px rgba(245, 158, 11, 0.18), 0 0 100px -10px rgba(245, 158, 11, 0.1), 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+  }
+  .result-card.DECLINED, .result-card.ERROR {
+    box-shadow: 0 30px 70px -15px rgba(239, 68, 68, 0.18), 0 0 100px -10px rgba(239, 68, 68, 0.1), 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1), shakeCard 0.6s cubic-bezier(.36,.07,.19,.97) both;
+  }
+
+  @keyframes shakeCard {
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60% { transform: translate3d(4px, 0, 0); }
   }
 
   @keyframes slideUp {
@@ -77,13 +96,71 @@
     align-items: center;
     justify-content: center;
     margin: 0 auto 32px;
-    font-size: 40px;
     position: relative;
   }
 
-  .icon-box.APPROVED { background: rgba(16, 185, 129, 0.1); color: var(--success); }
-  .icon-box.PENDING  { background: rgba(245, 158, 11, 0.1); color: var(--pending); }
-  .icon-box.DECLINED, .icon-box.ERROR { background: rgba(239, 68, 68, 0.1); color: var(--error); }
+  .icon-box.APPROVED { background: rgba(16, 185, 129, 0.08); color: var(--success); }
+  .icon-box.PENDING  { background: rgba(245, 158, 11, 0.08); color: var(--pending); }
+  .icon-box.DECLINED, .icon-box.ERROR { background: rgba(239, 68, 68, 0.08); color: var(--error); }
+
+  /* Custom SVG Draw-In Animations */
+  .svg-icon {
+    width: 48px;
+    height: 48px;
+    stroke-width: 3.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  
+  /* Success Circle & Check */
+  .checkmark-circle {
+    stroke-dasharray: 166;
+    stroke-dashoffset: 166;
+    stroke: var(--success);
+    animation: stroke-draw 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .checkmark-check {
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    stroke: var(--success);
+    animation: stroke-draw 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+  }
+  
+  /* Cross Circle & Lines */
+  .cross-circle {
+    stroke-dasharray: 166;
+    stroke-dashoffset: 166;
+    stroke: var(--error);
+    animation: stroke-draw 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .cross-line1 {
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    stroke: var(--error);
+    animation: stroke-draw 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.45s forwards;
+  }
+  .cross-line2 {
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    stroke: var(--error);
+    animation: stroke-draw 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards;
+  }
+  
+  @keyframes stroke-draw {
+    to { stroke-dashoffset: 0; }
+  }
+  
+  /* Rotating Hourglass for Pending */
+  .pending-hourglass {
+    stroke: var(--pending);
+    animation: rotateHourglass 2.2s cubic-bezier(0.77, 0, 0.175, 1) infinite;
+  }
+  @keyframes rotateHourglass {
+    0% { transform: rotate(0deg); }
+    45%, 55% { transform: rotate(180deg); }
+    100% { transform: rotate(360deg); }
+  }
 
   h2 {
     font-size: 1.75rem;
@@ -169,7 +246,7 @@
     to { width: 100%; }
   }
 
-  /* Success Pulse */
+  /* Success Pulse Ring */
   .icon-box.APPROVED::after {
     content: '';
     position: absolute;
@@ -181,26 +258,41 @@
   }
 
   @keyframes iconPulse {
-    0% { transform: scale(1); opacity: 0.8; }
-    100% { transform: scale(1.5); opacity: 0; }
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.4); opacity: 0; }
   }
 </style>
 
 <div class="bg-blob"></div>
 
-<div class="result-card">
+<div class="result-card <?php echo htmlspecialchars($status); ?>">
   <img class="wompi-logo" src="https://wompi.com/assets/downloadble/logos_wompi/Wompi_LogoPrincipal.svg" alt="Wompi">
 
   <?php if ($status === 'APPROVED'): ?>
-    <div class="icon-box APPROVED">✓</div>
+    <div class="icon-box APPROVED">
+      <svg class="svg-icon" viewBox="0 0 52 52">
+        <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+        <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+      </svg>
+    </div>
     <h2>¡Pago Exitoso!</h2>
     <p class="subtitle">Hemos recibido tu pago correctamente. Gracias por confiar en nosotros.</p>
   <?php elseif ($status === 'PENDING'): ?>
-    <div class="icon-box PENDING">⏳</div>
+    <div class="icon-box PENDING">
+      <svg class="svg-icon pending-hourglass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M5 2h14M5 22h14M19 2v4c0 3.3-2.7 6-6 6s-6-2.7-6-6V2M5 22v-4c0-3.3 2.7-6 6-6s6 2.7 6 6v4" />
+      </svg>
+    </div>
     <h2>Pago en Revisión</h2>
     <p class="subtitle">Tu transacción está siendo procesada por el banco. Te avisaremos pronto.</p>
   <?php else: ?>
-    <div class="icon-box DECLINED">✕</div>
+    <div class="icon-box DECLINED">
+      <svg class="svg-icon" viewBox="0 0 52 52">
+        <circle class="cross-circle" cx="26" cy="26" r="25" fill="none"/>
+        <path class="cross-line1" d="M16 16l20 20" />
+        <path class="cross-line2" d="M36 16L16 36" />
+      </svg>
+    </div>
     <h2>Pago Fallido</h2>
     <p class="subtitle">La transacción no pudo ser completada. Por favor, intenta de nuevo.</p>
   <?php endif; ?>
