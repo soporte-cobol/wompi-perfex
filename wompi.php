@@ -286,22 +286,11 @@ function wompi_ui_scripts()
 
     $can_render_widget = $licensed && !empty($public_key) && !empty($integrity_secret);
 
-    // Resolve Logo Assets dynamically: check for local assets in module directory, or fall back to high-availability hotlink-friendly CDN URLs.
-    $pse_logo = file_exists(module_dir_path('wompi', 'assets/pse.svg')) 
-        ? module_dir_url('wompi', 'assets/pse.svg') 
-        : (file_exists(module_dir_path('wompi', 'assets/pse.png')) ? module_dir_url('wompi', 'assets/pse.png') : 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Logo_del_PSE.png');
-
-    $bancolombia_logo = file_exists(module_dir_path('wompi', 'assets/bancolombia.svg')) 
-        ? module_dir_url('wompi', 'assets/bancolombia.svg') 
-        : (file_exists(module_dir_path('wompi', 'assets/bancolombia.png')) ? module_dir_url('wompi', 'assets/bancolombia.png') : 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Logo_Bancolombia.svg/512px-Logo_Bancolombia.svg.png');
-
-    $nequi_logo = file_exists(module_dir_path('wompi', 'assets/nequi.svg')) 
-        ? module_dir_url('wompi', 'assets/nequi.svg') 
-        : (file_exists(module_dir_path('wompi', 'assets/nequi.png')) ? module_dir_url('wompi', 'assets/nequi.png') : 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Nequi_Colombia_logo.svg/512px-Nequi_Colombia_logo.svg.png');
-
-    $daviplata_logo = file_exists(module_dir_path('wompi', 'assets/daviplata.svg')) 
-        ? module_dir_url('wompi', 'assets/daviplata.svg') 
-        : (file_exists(module_dir_path('wompi', 'assets/daviplata.png')) ? module_dir_url('wompi', 'assets/daviplata.png') : 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Arcticons-white_daviplata.svg/240px-Arcticons-white_daviplata.svg.png');
+    // Resolve Logo Assets dynamically: load them safely through the Callback controller to bypass modules/.htaccess access restrictions.
+    $pse_logo         = site_url('wompi/callback/logo/pse');
+    $bancolombia_logo = site_url('wompi/callback/logo/bancolombia');
+    $nequi_logo       = site_url('wompi/callback/logo/nequi');
+    $daviplata_logo   = site_url('wompi/callback/logo/daviplata');
 
     ?>
     <style id="wompi-premium-styles">

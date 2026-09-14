@@ -370,6 +370,53 @@ class Callback extends App_Controller
     }
 
     /**
+     * Serve payment brand logo assets safely to bypass modules/.htaccess access restrictions.
+     * URL example: /wompi/callback/logo/pse
+     *
+     * @param string $name Logo name (pse, bancolombia, nequi, daviplata)
+     */
+    public function logo($name = '')
+    {
+        $allowed = ['pse', 'bancolombia', 'nequi', 'daviplata'];
+        $name = str_replace('.png', '', str_replace('.svg', '', strtolower($name)));
+        
+        if (!in_array($name, $allowed)) {
+            show_404();
+            return;
+        }
+
+        $logo_path = '';
+        // Check for local SVG first, then PNG
+        if (file_exists(module_dir_path('wompi', 'assets/' . $name . '.svg'))) {
+            $logo_path = module_dir_path('wompi', 'assets/' . $name . '.svg');
+        } elseif (file_exists(module_dir_path('wompi', 'assets/' . $name . '.png'))) {
+            $logo_path = module_dir_path('wompi', 'assets/' . $name . '.png');
+        }
+
+        if (empty($logo_path)) {
+            // If local asset doesn't exist, redirect to standard fallback CDN
+            $fallbacks = [
+                'pse'          => 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Logo_del_PSE.png',
+                'bancolombia'  => 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Logo_Bancolombia.svg/512px-Logo_Bancolombia.svg.png',
+                'nequi'        => 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Nequi_Colombia_logo.svg/512px-Nequi_Colombia_logo.svg.png',
+                'daviplata'    => 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Arcticons-white_daviplata.svg/240px-Arcticons-white_daviplata.svg.png'
+            ];
+            redirect($fallbacks[$name]);
+            return;
+        }
+
+        $this->load->helper('file');
+        $mime = get_mime_by_extension($logo_path);
+        
+        header('Content-Type: ' . $mime);
+        header('Cache-Control: public, max-age=604800, must-revalidate'); // Cache for 7 days
+        header('Content-Length: ' . filesize($logo_path));
+        
+        readfile($logo_path);
+        exit;
+    }
+
+    /**
      * Check whether a payment with the given transaction ID already exists
      * to prevent double-recording (idempotency).
      *
