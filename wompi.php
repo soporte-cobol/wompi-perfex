@@ -354,14 +354,14 @@ function wompi_ui_scripts()
         .wompi-logo-item {
             background: #f8fafc;
             border: 1px solid #f1f5f9;
-            border-radius: 10px;
-            padding: 8px 4px;
+            border-radius: 12px;
+            padding: 10px 4px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
-            min-height: 48px;
+            min-height: 64px;
         }
         .wompi-logo-item:hover {
             background: #f1f5f9;
@@ -369,7 +369,7 @@ function wompi_ui_scripts()
             transform: translateY(-1px);
         }
         .wompi-logo-img {
-            max-height: 20px;
+            max-height: 34px;
             max-width: 85%;
             object-fit: contain;
             filter: grayscale(10%) contrast(105%);
@@ -381,7 +381,7 @@ function wompi_ui_scripts()
         .wompi-logo-caption {
             font-size: 8px;
             color: #64748b;
-            margin-top: 5px;
+            margin-top: 8px;
             font-weight: 600;
             text-align: center;
         }
@@ -488,6 +488,21 @@ function wompi_ui_scripts()
         #wompi-simple-container .wompi-button-wrapper button.wompi-button {
             display: none !important;
         }
+
+        /* Accessible visually-hidden helper to allow script dimensions to initialize */
+        .wompi-hidden-accessible {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
         
         /* Responsive adjustments */
         @media (max-width: 480px) {
@@ -510,8 +525,8 @@ function wompi_ui_scripts()
 
     <div id="wompi-simple-container" aria-hidden="true">
         <?php if ($can_render_widget): ?>
-            <!-- Hidden official Wompi form -->
-            <div class="wompi-button-wrapper" style="display: none !important;">
+            <!-- Hidden official Wompi form (visually hidden but technically active for script dimensions) -->
+            <div class="wompi-button-wrapper wompi-hidden-accessible">
                 <form id="wompi-real-form">
                     <?php
                     // Default amount for the widget is the current outstanding invoice value (in cents).
