@@ -373,11 +373,11 @@ class Callback extends App_Controller
      * Serve payment brand logo assets safely to bypass modules/.htaccess access restrictions.
      * URL example: /wompi/callback/logo/pse
      *
-     * @param string $name Logo name (pse, bancolombia, nequi, daviplata)
+     * @param string $name Logo name (pse, bancolombia, nequi, daviplata, visa, mastercard)
      */
     public function logo($name = '')
     {
-        $allowed = ['pse', 'bancolombia', 'nequi', 'daviplata'];
+        $allowed = ['pse', 'bancolombia', 'nequi', 'daviplata', 'visa', 'mastercard'];
         $name = str_replace('.png', '', str_replace('.svg', '', strtolower($name)));
         
         if (!in_array($name, $allowed)) {
@@ -399,7 +399,9 @@ class Callback extends App_Controller
                 'pse'          => 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Logo_del_PSE.png',
                 'bancolombia'  => 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Logo_Bancolombia.svg/512px-Logo_Bancolombia.svg.png',
                 'nequi'        => 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Nequi_Colombia_logo.svg/512px-Nequi_Colombia_logo.svg.png',
-                'daviplata'    => 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Arcticons-white_daviplata.svg/240px-Arcticons-white_daviplata.svg.png'
+                'daviplata'    => 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Arcticons-white_daviplata.svg/240px-Arcticons-white_daviplata.svg.png',
+                'visa'         => 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Visa_2021.svg/320px-Visa_2021.svg.png',
+                'mastercard'   => 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Mastercard_2019_logo.svg/320px-Mastercard_2019_logo.svg.png'
             ];
             redirect($fallbacks[$name]);
             return;

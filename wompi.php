@@ -291,6 +291,8 @@ function wompi_ui_scripts()
     $bancolombia_logo = site_url('wompi/callback/logo/bancolombia');
     $nequi_logo       = site_url('wompi/callback/logo/nequi');
     $daviplata_logo   = site_url('wompi/callback/logo/daviplata');
+    $visa_logo        = site_url('wompi/callback/logo/visa');
+    $mastercard_logo  = site_url('wompi/callback/logo/mastercard');
 
     ?>
     <style id="wompi-premium-styles">
@@ -306,6 +308,9 @@ function wompi_ui_scripts()
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
             text-align: left;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         .wompi-premium-panel:hover {
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
@@ -344,24 +349,25 @@ function wompi_ui_scripts()
             border: 1px solid #bbf7d0;
         }
         
-        /* Grid of logos with hover states */
+        /* Grid of logos in a single horizontal line */
         .wompi-logos-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
             margin-bottom: 20px;
+            width: 100%;
         }
         .wompi-logo-item {
             background: #f8fafc;
             border: 1px solid #f1f5f9;
-            border-radius: 14px;
-            padding: 16px 12px;
+            border-radius: 12px;
+            padding: 12px 4px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            min-height: 94px;
+            min-height: 84px;
         }
         .wompi-logo-item:hover {
             background: #ffffff;
@@ -370,7 +376,7 @@ function wompi_ui_scripts()
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.04);
         }
         .wompi-logo-img {
-            max-height: 48px;
+            max-height: 34px;
             max-width: 90%;
             object-fit: contain;
             filter: grayscale(10%) contrast(105%);
@@ -380,12 +386,28 @@ function wompi_ui_scripts()
             filter: grayscale(0%) contrast(110%);
         }
         .wompi-logo-caption {
-            font-size: 8.5px;
+            font-size: 8px;
             color: #475569;
             margin-top: 8px;
             font-weight: 700;
             text-align: center;
             letter-spacing: 0.1px;
+            white-space: nowrap;
+        }
+
+        /* Combined Visa & Mastercard wrapper inside the 5th card */
+        .wompi-cards-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            max-width: 90%;
+            height: 34px;
+        }
+        .wompi-logo-img.card-brand {
+            max-height: 24px;
+            width: auto;
+            max-width: 45%;
         }
         
         /* Premium custom button */
@@ -506,17 +528,27 @@ function wompi_ui_scripts()
             pointer-events: none !important;
         }
         
-        /* Responsive adjustments */
+        /* Responsive adjustments for mobile devices */
         @media (max-width: 480px) {
             .wompi-logos-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(5, 1fr);
+                gap: 4px;
             }
             .wompi-logo-item {
-                min-height: 76px;
-                padding: 12px 8px;
+                min-height: 64px;
+                padding: 8px 2px;
+                border-radius: 8px;
             }
             .wompi-logo-img {
-                max-height: 38px;
+                max-height: 24px;
+            }
+            .wompi-cards-wrapper {
+                height: 24px;
+                gap: 2px;
+            }
+            .wompi-logo-caption {
+                font-size: 7px;
+                margin-top: 5px;
             }
             .wompi-premium-header {
                 flex-direction: column;
@@ -590,11 +622,11 @@ function wompi_ui_scripts()
                         <img class="wompi-logo-img" src="<?php echo $daviplata_logo; ?>" alt="Daviplata">
                         <span class="wompi-logo-caption">Daviplata</span>
                     </div>
-                    <div class="wompi-logo-item" title="Tarjetas de Crédito y Débito">
-                        <svg class="wompi-logo-img" width="28" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="max-height: 20px;">
-                            <rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect>
-                            <line x1="2" y1="10" x2="22" y2="10"></line>
-                        </svg>
+                    <div class="wompi-logo-item" title="Tarjetas de Crédito y Débito (Visa, Mastercard)">
+                        <div class="wompi-cards-wrapper">
+                            <img class="wompi-logo-img card-brand" src="<?php echo $visa_logo; ?>" alt="Visa">
+                            <img class="wompi-logo-img card-brand" src="<?php echo $mastercard_logo; ?>" alt="Mastercard">
+                        </div>
                         <span class="wompi-logo-caption">Tarjetas</span>
                     </div>
                 </div>
@@ -819,6 +851,9 @@ function wompi_ui_scripts()
                     scheduleWidgetRefresh(amountField.value);
                 }
             }
+
+            // Ensure premium button interactions are wired up
+            bindPremiumButton();
         }
 
         var _refreshTimer = null;
@@ -933,7 +968,67 @@ function wompi_ui_scripts()
             script.setAttribute('data-customer-data:hash', String(data.hash || ''));
             form.appendChild(script);
             wrap.appendChild(form);
+
+            // Re-bind click event on our premium button
+            resetPremiumButton();
         }
+
+        function bindPremiumButton() {
+            var premiumBtn = document.getElementById('wompi-premium-btn');
+            if (!premiumBtn) return;
+
+            if (premiumBtn.dataset.wompiBound) return;
+            premiumBtn.dataset.wompiBound = 'true';
+
+            premiumBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                var realForm = document.getElementById('wompi-real-form');
+                if (!realForm) return;
+
+                var realBtn = realForm.querySelector('button.wompi-button') || realForm.querySelector('button');
+                if (realBtn) {
+                    var btnText = document.getElementById('wompi-btn-text');
+                    premiumBtn.classList.add('loading');
+                    premiumBtn.disabled = true;
+                    if (btnText) btnText.textContent = 'Abriendo pasarela segura...';
+
+                    // Trigger actual click
+                    realBtn.click();
+                    
+                    // Fallback reset if focus is lost/returned or after a reasonable timeout
+                    setTimeout(function() {
+                        resetPremiumButton();
+                    }, 12000);
+                } else {
+                    var btnText = document.getElementById('wompi-btn-text');
+                    if (btnText) {
+                        var originalText = btnText.textContent;
+                        btnText.textContent = 'Cargando pasarela...';
+                        setTimeout(function() {
+                            btnText.textContent = originalText;
+                        }, 2000);
+                    }
+                }
+            });
+        }
+
+        function resetPremiumButton() {
+            var premiumBtn = document.getElementById('wompi-premium-btn');
+            var btnText = document.getElementById('wompi-btn-text');
+            if (premiumBtn) {
+                premiumBtn.classList.remove('loading');
+                premiumBtn.disabled = false;
+            }
+            if (btnText) {
+                btnText.textContent = 'Pagar Factura de Forma Segura';
+            }
+        }
+
+        // Listen for window focus to reset the button state if customer closes the modal
+        window.addEventListener('focus', function() {
+            resetPremiumButton();
+        });
 
         function bindModeChanges() {
             // Radios or selects depending on template.
