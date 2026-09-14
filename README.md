@@ -269,6 +269,37 @@ No. Tu configuración (credenciales de Wompi, ajustes, etc.) se mantiene intacta
 
 ---
 
+## 🗺️ Roadmap de Próximas Mejoras
+
+Este módulo se encuentra en constante evolución. Próximamente se integrarán las siguientes mejoras:
+
+### 🛠️ 1. Mejoras Técnicas y Robustez
+* **Idempotencia de Webhooks:** Mecanismo de bloqueo a nivel de base de datos/registro para evitar duplicación de cobros ante ejecuciones concurrentes de webhook y redirecciones.
+* **Verificación Estricta de SSL:** Incorporación de `CURLOPT_SSL_VERIFYPEER => true` en la consulta de transacciones (`Callback.php`) para mitigar ataques MitM.
+* **Periodo de Gracia de Licencia ("Soft Fail"):** Tolerancia a fallos de 48 a 72 horas para garantizar operatividad ininterrumpida si el servidor central de licencias (`control.cobol.com.co`) experimenta caídas.
+
+### 🎨 2. Mejoras de UI/UX y Estética Visual
+* **Botón de Pago Premium con Logotipos de Confianza:** Sustitución de la renderización nativa de Wompi por un botón de pago estilizado con gradientes modernos y animaciones fluidas, que integra directamente los logotipos oficiales de los medios de pago más reconocidos (PSE, Bancolombia, Nequi, Daviplata, Visa/Mastercard, etc.). Esto elimina la fricción y genera confianza inmediata en los clientes que no estén familiarizados con la marca Wompi.
+* **Indicadores SVG Animados:** Implementación de gráficos SVG fluidos en `payment_result.php` para ilustrar estados de éxito y rechazo.
+* **Barra de Progreso de Auto-redirección:** Indicador animado sincronizado con el contador de 6 segundos en la tarjeta traslúcida de resultado.
+* **Efectos de Brillo Dinámico (Glow Effects):** Proyección de un halo de luz posterior (verde o rojo) alineado con el estatus de la transacción.
+* **Transiciones de Entrada de Campos:** Animaciones suaves en los campos del formulario personalizado para pulir la experiencia general del usuario.
+* **Cuadrícula de Métodos de Pago Habilitados (Visual Badges & Logos):** Integración de una cuadrícula de selectores visuales de alta fidelidad e insignias modernas que incluyen los logotipos oficiales para cada método de pago soportado por Wompi en el checkout personalizado:
+  * **Tarjetas de Crédito o Débito:** Permite a tus clientes usar tarjetas de crédito o débito para realizar el pago.
+  * **Botón de Transferencia Bancolombia:** Permite a tus clientes usar sus cuentas de ahorros o corrientes Bancolombia para realizar el pago.
+  * **Nequi:** Ofrece a tus clientes la posibilidad de usar su cuenta Nequi desde su celular, para completar el pago.
+  * **PSE:** Permite a tus clientes realizar el pago usando su cuenta bancaria, de ahorros o corriente de cualquier banco colombiano.
+  * **Pago en efectivo en Corresponsales Bancarios Bancolombia:** Permite a tus clientes realizar el pago en efectivo en cualquiera de los más de 15.000 Corresponsales Bancarios Bancolombia.
+  * **PCOL:** Permite a tus clientes realizar el pago redimiendo Puntos Colombia.
+  * **BNPL BANCOLOMBIA:** Permite a tus clientes optar por un crédito de libre inversión de BANCOLOMBIA, sin intereses, dividido en 4 cuotas mensuales para transacciones superiores a $100,000 pesos.
+  * **DAVIPLATA:** Proporciona a tus clientes la opción de utilizar su cuenta Daviplata para realizar el pago de forma conveniente.
+  * **SU+ PAY:** Permite a los usuarios comprar productos o servicios y pagarlos en cuotas, facilitando la gestión financiera y el acceso a una amplia gama de productos.
+
+### 🌍 3. Internacionalización
+* **Traducciones de Avisos de Administración:** Traslado de las alertas del panel administrativo hardcodeadas en `wompi.php` al archivo `language/spanish/wompi_lang.php`, facilitando la adición de futuros idiomas.
+
+---
+
 ## 📄 Licencia del código
 
 Este repositorio contiene la versión **Community** del módulo.  
