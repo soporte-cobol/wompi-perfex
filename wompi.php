@@ -131,6 +131,10 @@ function wompi_license_valid()
     }
 
     $CI = &get_instance();
+
+    // Auto-request trial if no license key is set
+    wompi_maybe_request_trial();
+
     $CI->load->library('wompi/Wompi_license'); // file: libraries/Wompi_license.php, class: Wompi_license
 
     // In admin payment gateway settings we prefer fresh validation to reduce confusion.
@@ -238,9 +242,11 @@ hooks()->add_action('admin_footer', 'wompi_ui_scripts');
 function wompi_ui_scripts()
 {
     $CI = &get_instance();
+    $admin_folder = function_exists('get_admin_uri') ? get_admin_uri() : 'admin';
+    
     $is_client = $CI->uri->segment(1) === 'invoice' || $CI->uri->segment(1) === 'invoices';
-    $is_admin  = $CI->uri->segment(1) === 'admin' && ($CI->uri->segment(2) === 'invoices' || $CI->uri->segment(2) === 'payments');
-    $is_admin_payment_gateways = $CI->uri->segment(1) === 'admin'
+    $is_admin  = $CI->uri->segment(1) === $admin_folder && ($CI->uri->segment(2) === 'invoices' || $CI->uri->segment(2) === 'payments');
+    $is_admin_payment_gateways = $CI->uri->segment(1) === $admin_folder
         && $CI->uri->segment(2) === 'settings'
         && $CI->input->get('group') === 'payment_gateways';
 
@@ -262,8 +268,37 @@ function wompi_ui_scripts()
     $licensed = wompi_license_valid();
 
     // Get invoice data (client and admin invoice views)
-    $invoice_id = $is_client ? $CI->uri->segment(2) : $CI->uri->segment(3);
-    if (empty($invoice_id)) {
+    $invoice_id = '';
+    if ($is_client) {
+        $invoice_id = $CI->uri->segment(2);
+    } elseif ($is_admin) {
+        $seg2 = $CI->uri->segment(2);
+        $seg3 = $CI->uri->segment(3);
+        $seg4 = $CI->uri->segment(4);
+
+        if ($seg2 === 'invoices') {
+            if ($seg3 === 'list_invoices') {
+                $invoice_id = $seg4;
+            } elseif ($seg3 === 'view' || $seg3 === 'invoice') {
+                $invoice_id = $seg4;
+            } else {
+                if (is_numeric($seg3)) {
+                    $invoice_id = $seg3;
+                }
+            }
+        } elseif ($seg2 === 'payments') {
+            if ($seg3 === 'payment' && is_numeric($seg4)) {
+                $CI->db->select('invoiceid');
+                $CI->db->where('id', $seg4);
+                $pay_rec = $CI->db->get(db_prefix() . 'invoicepaymentrecords')->row();
+                if ($pay_rec) {
+                    $invoice_id = $pay_rec->invoiceid;
+                }
+            }
+        }
+    }
+
+    if (empty($invoice_id) || !is_numeric($invoice_id)) {
         return;
     }
 
@@ -286,6 +321,8 @@ function wompi_ui_scripts()
     $integrity_secret = $gateway->decryptSetting('integrity_secret');
 
     $can_render_widget = $licensed && !empty($public_key) && !empty($integrity_secret);
+    $is_admin_user      = function_exists('is_admin') && is_admin();
+    $should_render_panel = $can_render_widget || $is_admin_user;
 
     // Resolve Logo Assets dynamically: load them safely through the Callback controller to bypass modules/.htaccess access restrictions.
     $pse_logo         = site_url('wompi/callback/logo/pse');
@@ -315,6 +352,7 @@ function wompi_ui_scripts()
     // Inject unified stylesheet
     echo '<link rel="stylesheet" type="text/css" href="' . module_assets_url('wompi', 'assets/wompi.css') . '?v=' . WOMPI_MODULE_VERSION . '">';
     ?>
+    <div id="wompi-simple-container" aria-hidden="true">
         <?php if ($can_render_widget): ?>
             <!-- Hidden official Wompi form (visually hidden but technically active for script dimensions) -->
             <div class="wompi-button-wrapper wompi-hidden-accessible">
@@ -339,9 +377,36 @@ function wompi_ui_scripts()
                     </script>
                 </form>
             </div>
+        <?php endif; ?>
 
+        <?php if ($should_render_panel): ?>
             <!-- Beautiful Premium Panel -->
             <div class="wompi-premium-panel">
+                <?php if (!$can_render_widget && $is_admin_user): ?>
+                    <!-- Admin Diagnostic Notice Box -->
+                    <div class="wompi-admin-setup-notice" style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 13px; color: #b45309; text-align: left;">
+                        <div style="font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            Panel de Control Wompi (Solo visible para Administradores)
+                        </div>
+                        <ul style="margin: 0; padding-left: 18px; line-height: 1.4;">
+                            <?php if (!$licensed): ?>
+                                <li><strong>Licencia requerida:</strong> La licencia de Wompi no es válida o ha expirado. Verifique en <a href="<?php echo site_url('admin/settings?group=payment_gateways'); ?>" style="text-decoration: underline; color: #b45309; font-weight: 600;">Ajustes de Pago</a>.</li>
+                            <?php endif; ?>
+                            <?php if (empty($public_key)): ?>
+                                <li><strong>Llave Pública faltante:</strong> Ingrese su Llave Pública de Wompi en los ajustes de pasarelas de pago.</li>
+                            <?php endif; ?>
+                            <?php if (empty($integrity_secret)): ?>
+                                <li><strong>Secreto de Integridad faltante:</strong> Ingrese su Secreto de Integridad de Wompi en los ajustes (requerido para firmar transacciones).</li>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+
                 <div class="wompi-premium-header">
                     <h4 class="wompi-premium-title">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -406,14 +471,25 @@ function wompi_ui_scripts()
                             </div>
                         <?php endif; ?>
                     <?php else: ?>
-                        <button type="button" class="wompi-btn-premium" id="wompi-premium-btn">
-                            <div class="wompi-spinner"></div>
-                            <svg class="wompi-btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
-                            <span id="wompi-btn-text">Pagar Factura de Forma Segura</span>
-                        </button>
+                        <?php if (!$can_render_widget): ?>
+                            <!-- Inactive/Setup Pending State Button -->
+                            <button type="button" class="wompi-btn-premium" style="opacity: 0.65; cursor: not-allowed;" disabled>
+                                <svg class="wompi-btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                                <span>Pasarela Deshabilitada (Falta Configuración)</span>
+                            </button>
+                        <?php else: ?>
+                            <button type="button" class="wompi-btn-premium" id="wompi-premium-btn">
+                                <div class="wompi-spinner"></div>
+                                <svg class="wompi-btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                                <span id="wompi-btn-text">Pagar Factura de Forma Segura</span>
+                            </button>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
                 
@@ -944,7 +1020,7 @@ function wompi_render_backend_license_panel()
     ?>
     <script>
     (function() {
-        document.addEventListener('DOMContentLoaded', function() {
+        function initBackend() {
             var input = document.querySelector('[name="settings[paymentmethod_wompi_license_key]"]');
             if (!input) return;
             var formGroup = input.closest('.form-group');
@@ -996,7 +1072,13 @@ function wompi_render_backend_license_panel()
                 </a>
             `;
             formGroup.parentNode.insertBefore(card, formGroup);
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initBackend);
+        } else {
+            initBackend();
+        }
     })();
     </script>
     <?php
