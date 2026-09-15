@@ -304,6 +304,7 @@
     opacity: 1;
 }
 .wompi-amount-container-transition.wompi-collapsed {
+    display: none !important;
     max-height: 0 !important;
     opacity: 0 !important;
     margin-top: 0 !important;

@@ -514,6 +514,8 @@ function wompi_ui_scripts()
         var wompiSignatureEndpoint = <?php echo json_encode(site_url('wompi/callback/get_checkout_data/' . (int) $invoice_id . '/' . $invoice->hash)); ?>;
         var invoiceCurrency = <?php echo json_encode((string) $currency); ?>;
         var isPaid = <?php echo $is_paid ? 'true' : 'false'; ?>;
+        var isAdminUser = <?php echo $is_admin_user ? 'true' : 'false'; ?>;
+        var isAdminView = <?php echo $is_admin ? 'true' : 'false'; ?>;
 
         function findPaymentForm() {
             return document.querySelector('#online_payment_form') || 
