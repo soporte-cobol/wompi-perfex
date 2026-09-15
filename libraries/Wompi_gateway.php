@@ -4,6 +4,11 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Wompi_gateway extends App_gateway
 {
+    /**
+     * Declared explicitly to prevent dynamic property deprecation warnings in PHP 8.2+
+     */
+    public $allow_partial_payments;
+
     public function __construct()
     {
         $this->setId('wompi');
