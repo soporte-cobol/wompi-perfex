@@ -21,6 +21,9 @@ class Wompi_license
     /** Cache duration in seconds (24 hours) */
     private const CACHE_TTL = 86400;
 
+    /** Grace period in seconds (72 hours) if WHMCS connection fails */
+    private const GRACE_PERIOD = 259200;
+
     /** Option key prefix in Perfex options table */
     private const OPT_PREFIX = 'wompi_license_';
 
@@ -67,6 +70,28 @@ class Wompi_license
 
         // No valid cache — call WHMCS
         $result = $this->_verify($key);
+
+        // If connection fails but we have a previously cached valid license, fall back to grace period.
+        if ($result['status'] === 'Connection Error' || $result['status'] === 'Invalid Response') {
+            $old_raw = get_option(self::OPT_PREFIX . 'data');
+            $cached_at = (int) get_option(self::OPT_PREFIX . 'cached_at');
+            if (!empty($old_raw) && $cached_at > 0) {
+                $old_data = json_decode($old_raw, true);
+                if (is_array($old_data) && ($old_data['valid'] ?? false) === true) {
+                    $elapsed = time() - $cached_at;
+                    if ($elapsed < (self::CACHE_TTL + self::GRACE_PERIOD)) {
+                        log_message('error', '[Wompi License] WHMCS server unreachable. Entering grace period. Allowing access using last valid cached license. Last verified ' . $elapsed . 's ago.');
+                        // Temp flag to indicate grace period
+                        $old_data['status'] = 'Grace Period';
+                        $old_data['is_grace_period'] = true;
+                        $old_data['grace_elapsed_hours'] = round(($elapsed - self::CACHE_TTL) / 3600);
+                        update_option(self::OPT_PREFIX . 'data', json_encode($old_data));
+                        return true;
+                    }
+                }
+            }
+        }
+
         $this->_cache($result);
 
         return $result['valid'] === true;
@@ -90,6 +115,22 @@ class Wompi_license
         }
 
         $result = $this->_verify($key);
+
+        // Check grace period in getStatus() if verify fails
+        if ($result['status'] === 'Connection Error' || $result['status'] === 'Invalid Response') {
+            $old_raw = get_option(self::OPT_PREFIX . 'data');
+            $cached_at = (int) get_option(self::OPT_PREFIX . 'cached_at');
+            if (!empty($old_raw) && $cached_at > 0) {
+                $old_data = json_decode($old_raw, true);
+                if (is_array($old_data) && ($old_data['valid'] ?? false) === true) {
+                    $elapsed = time() - $cached_at;
+                    if ($elapsed < (self::CACHE_TTL + self::GRACE_PERIOD)) {
+                        return 'Grace Period';
+                    }
+                }
+            }
+        }
+
         $this->_cache($result);
         return $result['status'] ?? 'Unknown';
     }

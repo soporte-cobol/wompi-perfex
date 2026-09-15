@@ -180,8 +180,7 @@ function wompi_license_admin_notice()
         if ($days_left > 0 && $days_left <= 7) {
             echo '<div class="alert alert-warning alert-dismissible wompi-admin-notice">'
                 . '<button type="button" class="close" data-dismiss="alert">&times;</button>'
-                . '⚠️ Tu período de prueba de <strong>Wompi Payment Gateway</strong> vence en <strong>' . $days_left . ' día(s)</strong>. '
-                . '<a href="https://control.cobol.com.co/index.php?rp=/store/contenidos/wompi-perfex" target="_blank">Activa tu plan aquí</a>.'
+                . sprintf(_l('wompi_admin_notice_trial_warning'), $days_left)
                 . '</div>';
             return;
         }
@@ -189,8 +188,7 @@ function wompi_license_admin_notice()
         if ($days_left <= 0 && !wompi_license_valid()) {
             echo '<div class="alert alert-danger alert-dismissible wompi-admin-notice">'
                 . '<button type="button" class="close" data-dismiss="alert">&times;</button>'
-                . '🚫 Tu prueba de <strong>Wompi Payment Gateway</strong> ha expirado. '
-                . '<a href="https://control.cobol.com.co/index.php?rp=/store/contenidos/wompi-perfex" target="_blank">Renueva tu licencia</a> para seguir recibiendo pagos.'
+                . _l('wompi_admin_notice_trial_expired')
                 . '</div>';
             return;
         }
@@ -200,8 +198,7 @@ function wompi_license_admin_notice()
     if (empty($license_key)) {
         echo '<div class="alert alert-info alert-dismissible wompi-admin-notice">'
             . '<button type="button" class="close" data-dismiss="alert">&times;</button>'
-            . '🔑 <strong>Wompi Payment Gateway</strong> está activando tu trial gratuito de 30 días... '
-            . 'Si no se activa automáticamente, <a href="https://control.cobol.com.co/index.php?rp=/store/contenidos/wompi-perfex" target="_blank">obtén tu licencia aquí</a>.'
+            . _l('wompi_admin_notice_no_key')
             . '</div>';
         return;
     }
@@ -212,17 +209,19 @@ function wompi_license_admin_notice()
         $status = $CI->wompi_license->getStatus();
         $ctx    = $CI->wompi_license->getVerifyContext();
         $tx     = $CI->wompi_license->getLastTransportInfo();
+        $curl_text = !empty($tx['curl_err']) ? ' cURL=' . htmlspecialchars($tx['curl_err'], ENT_QUOTES, 'UTF-8') : '';
+        
         echo '<div class="alert alert-warning alert-dismissible wompi-admin-notice">'
             . '<button type="button" class="close" data-dismiss="alert">&times;</button>'
-            . '⚠️ La licencia de <strong>Wompi Payment Gateway</strong> es inválida o ha expirado. '
-            . 'Estado: <strong>' . htmlspecialchars($status, ENT_QUOTES, 'UTF-8') . '</strong>. '
-            . '<br><small>Validando como Domain=' . htmlspecialchars($ctx['domain'], ENT_QUOTES, 'UTF-8')
-            . ' IP=' . htmlspecialchars($ctx['ip'], ENT_QUOTES, 'UTF-8')
-            . ' Dir=' . htmlspecialchars($ctx['dir'], ENT_QUOTES, 'UTF-8')
-            . ' HTTP=' . htmlspecialchars((string) ($tx['http_code'] ?? ''), ENT_QUOTES, 'UTF-8')
-            . (!empty($tx['curl_err']) ? ' cURL=' . htmlspecialchars($tx['curl_err'], ENT_QUOTES, 'UTF-8') : '')
-            . '</small> '
-            . '<a href="https://control.cobol.com.co/index.php?rp=/store/contenidos/wompi-perfex" target="_blank">Renueva aquí</a>.'
+            . sprintf(
+                _l('wompi_admin_notice_invalid'),
+                htmlspecialchars($status, ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($ctx['domain'], ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($ctx['ip'], ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($ctx['dir'], ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars((string) ($tx['http_code'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                $curl_text
+            )
             . '</div>';
     }
 }
@@ -253,6 +252,8 @@ function wompi_ui_scripts()
     // No invoice context is available there.
     if ($is_admin_payment_gateways) {
         wompi_license_valid();
+        echo '<link rel="stylesheet" type="text/css" href="' . module_assets_url('wompi', 'assets/wompi.css') . '?v=' . WOMPI_MODULE_VERSION . '">';
+        wompi_render_backend_license_panel();
         return;
     }
 
@@ -311,274 +312,9 @@ function wompi_ui_scripts()
         }
     }
 
+    // Inject unified stylesheet
+    echo '<link rel="stylesheet" type="text/css" href="' . module_assets_url('wompi', 'assets/wompi.css') . '?v=' . WOMPI_MODULE_VERSION . '">';
     ?>
-    <style id="wompi-premium-styles">
-        /* Base Premium Styling for Wompi Checkout & Confirmation */
-        .wompi-premium-panel {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 24px;
-            margin-top: 15px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            position: relative;
-            text-align: left;
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
-        }
-        .wompi-premium-panel:hover {
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-            border-color: #cbd5e1;
-        }
-        .wompi-premium-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 18px;
-            border-bottom: 1px dashed #e2e8f0;
-            padding-bottom: 14px;
-        }
-        .wompi-premium-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #0f172a;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .wompi-premium-title svg {
-            color: #6366f1;
-        }
-        .wompi-secure-badge {
-            font-size: 11px;
-            background: #f0fdf4;
-            color: #166534;
-            padding: 4px 10px;
-            border-radius: 30px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            border: 1px solid #bbf7d0;
-        }
-        
-        /* Grid of logos in a single horizontal line */
-        .wompi-logos-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 8px;
-            margin-bottom: 20px;
-            width: 100%;
-        }
-        .wompi-logo-item {
-            background: #f8fafc;
-            border: 1px solid #f1f5f9;
-            border-radius: 12px;
-            padding: 12px 4px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            min-height: 84px;
-        }
-        .wompi-logo-item:hover {
-            background: #ffffff;
-            border-color: #cbd5e1;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.04);
-        }
-        .wompi-logo-img {
-            max-height: 34px;
-            max-width: 90%;
-            object-fit: contain;
-            filter: grayscale(10%) contrast(105%);
-            transition: all 0.25s ease;
-        }
-        .wompi-logo-item:hover .wompi-logo-img {
-            filter: grayscale(0%) contrast(110%);
-        }
-        .wompi-logo-caption {
-            font-size: 8px;
-            color: #475569;
-            margin-top: 8px;
-            font-weight: 700;
-            text-align: center;
-            letter-spacing: 0.1px;
-            white-space: nowrap;
-        }
-
-        /* Combined Visa & Mastercard wrapper inside the 5th card */
-        .wompi-cards-wrapper {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            max-width: 90%;
-            height: 34px;
-        }
-        .wompi-logo-img.card-brand {
-            max-height: 24px;
-            width: auto;
-            max-width: 45%;
-        }
-        
-        /* Premium custom button */
-        .wompi-btn-premium {
-            width: 100%;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #ffffff;
-            border: none;
-            border-radius: 12px;
-            padding: 14px 24px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
-            text-transform: none !important;
-            letter-spacing: 0.1px;
-        }
-        .wompi-btn-premium:hover {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
-            color: #ffffff !important;
-        }
-        .wompi-btn-premium:active {
-            transform: translateY(0);
-        }
-        
-        /* Shimmer reflection animation */
-        .wompi-btn-premium::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -50%;
-            width: 30%;
-            height: 100%;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0) 100%);
-            transform: skewX(-25deg);
-            animation: wompiShimmer 5s infinite;
-        }
-        @keyframes wompiShimmer {
-            0% { left: -150%; }
-            30% { left: 150%; }
-            100% { left: 150%; }
-        }
-        
-        /* Loading spinner */
-        .wompi-spinner {
-            width: 18px;
-            height: 18px;
-            border: 2px solid rgba(255, 255, 255, 0.35);
-            border-radius: 50%;
-            border-top-color: #ffffff;
-            animation: wompiSpin 0.8s linear infinite;
-            display: none;
-        }
-        @keyframes wompiSpin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Active loading state */
-        .wompi-btn-premium.loading {
-            pointer-events: none;
-            opacity: 0.9;
-            background: #1e293b;
-        }
-        .wompi-btn-premium.loading .wompi-spinner {
-            display: inline-block;
-        }
-        .wompi-btn-premium.loading .wompi-btn-icon {
-            display: none;
-        }
-        
-        .wompi-btn-icon {
-            transition: transform 0.2s ease;
-        }
-        .wompi-btn-premium:hover .wompi-btn-icon {
-            transform: translateX(1px);
-        }
-        
-        /* Footnote */
-        .wompi-premium-footer {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            margin-top: 14px;
-            font-size: 11px;
-            color: #64748b;
-        }
-        .wompi-premium-footer svg {
-            color: #94a3b8;
-        }
-        
-        /* Hide Wompi's default button completely */
-        #wompi-simple-container .wompi-button-wrapper button.wompi-button {
-            display: none !important;
-        }
-
-        /* Accessible visually-hidden helper to allow script dimensions to initialize */
-        .wompi-hidden-accessible {
-            position: absolute !important;
-            width: 1px !important;
-            height: 1px !important;
-            padding: 0 !important;
-            margin: -1px !important;
-            overflow: hidden !important;
-            clip: rect(0, 0, 0, 0) !important;
-            white-space: nowrap !important;
-            border: 0 !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-        }
-        
-        /* Responsive adjustments for mobile devices */
-        @media (max-width: 480px) {
-            .wompi-logos-grid {
-                grid-template-columns: repeat(5, 1fr);
-                gap: 4px;
-            }
-            .wompi-logo-item {
-                min-height: 64px;
-                padding: 8px 2px;
-                border-radius: 8px;
-            }
-            .wompi-logo-img {
-                max-height: 24px;
-            }
-            .wompi-cards-wrapper {
-                height: 24px;
-                gap: 2px;
-            }
-            .wompi-logo-caption {
-                font-size: 7px;
-                margin-top: 5px;
-            }
-            .wompi-premium-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 8px;
-            }
-            .wompi-secure-badge {
-                align-self: flex-start;
-            }
-        }
-    </style>
-
-    <div id="wompi-simple-container" aria-hidden="true">
         <?php if ($can_render_widget): ?>
             <!-- Hidden official Wompi form (visually hidden but technically active for script dimensions) -->
             <div class="wompi-button-wrapper wompi-hidden-accessible">
@@ -620,23 +356,23 @@ function wompi_ui_scripts()
                 </div>
                 
                 <div class="wompi-logos-grid">
-                    <div class="wompi-logo-item" title="PSE - Pagos Seguros en Línea">
+                    <div class="wompi-logo-item" data-tooltip="Débito seguro desde cualquier banco">
                         <img class="wompi-logo-img" src="<?php echo $pse_logo; ?>" alt="PSE">
                         <span class="wompi-logo-caption">PSE / Bancos</span>
                     </div>
-                    <div class="wompi-logo-item" title="Bancolombia">
+                    <div class="wompi-logo-item" data-tooltip="Transferencia directa e inmediata">
                         <img class="wompi-logo-img" src="<?php echo $bancolombia_logo; ?>" alt="Bancolombia">
                         <span class="wompi-logo-caption">Bancolombia</span>
                     </div>
-                    <div class="wompi-logo-item" title="Nequi">
+                    <div class="wompi-logo-item" data-tooltip="Paga rápido desde tu celular">
                         <img class="wompi-logo-img" src="<?php echo $nequi_logo; ?>" alt="Nequi">
                         <span class="wompi-logo-caption">Nequi</span>
                     </div>
-                    <div class="wompi-logo-item" title="Daviplata">
+                    <div class="wompi-logo-item" data-tooltip="Usa tu cuenta Daviplata en segundos">
                         <img class="wompi-logo-img" src="<?php echo $daviplata_logo; ?>" alt="Daviplata">
                         <span class="wompi-logo-caption">Daviplata</span>
                     </div>
-                    <div class="wompi-logo-item" title="Tarjetas de Crédito y Débito (Visa, Mastercard)">
+                    <div class="wompi-logo-item" data-tooltip="Visa o Mastercard (Crédito/Débito)">
                         <div class="wompi-cards-wrapper">
                             <img class="wompi-logo-img card-brand" src="<?php echo $visa_logo; ?>" alt="Visa">
                             <img class="wompi-logo-img card-brand" src="<?php echo $mastercard_logo; ?>" alt="Mastercard">
@@ -649,7 +385,7 @@ function wompi_ui_scripts()
                     <?php if ($is_paid): ?>
                         <?php if ($wompi_payment): ?>
                             <!-- Beautiful status notification pill for Wompi payments -->
-                            <div class="wompi-status-bar-paid" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; border-radius: 12px; padding: 14px 24px; font-size: 13px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15); text-align: center;">
+                            <div class="wompi-status-bar-paid">
                                 <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700;">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="20 6 9 17 4 12"></polyline>
@@ -662,7 +398,7 @@ function wompi_ui_scripts()
                             </div>
                         <?php else: ?>
                             <!-- Beautiful general paid status bar -->
-                            <div class="wompi-status-bar-paid" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; border-radius: 12px; padding: 14px 24px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15); text-align: center;">
+                            <div class="wompi-status-bar-paid general">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="20 6 9 17 4 12"></polyline>
                                 </svg>
@@ -855,17 +591,17 @@ function wompi_ui_scripts()
             amountInputs.forEach(function(amountInput) {
                 if (!amountInput) return;
                 var row = amountInput.closest('.form-group, .col-md-12, .row, tr, .form-item');
+                if (row) {
+                    row.classList.add('wompi-amount-container-transition');
+                }
 
                 if (show && !allowPartial) {
                     amountInput.value = (invoiceTotalCents / 100).toFixed(2);
                     amountInput.readOnly = true;
-                    // Hide both the input and its closest row container to remove "variable amount" UI.
-                    amountInput.style.display = 'none';
-                    if (row) row.style.display = 'none';
+                    if (row) row.classList.add('wompi-collapsed');
                 } else if (show && allowPartial) {
                     amountInput.readOnly = false;
-                    amountInput.style.display = '';
-                    if (row) row.style.display = '';
+                    if (row) row.classList.remove('wompi-collapsed');
 
                     // Visual-only: COP is typically integer-only. Force integer UX in the amount input
                     // while keeping backend math in cents correct (we re-sign using the parsed value).
@@ -880,8 +616,7 @@ function wompi_ui_scripts()
                     }
                 } else {
                     amountInput.readOnly = false;
-                    amountInput.style.display = '';
-                    if (row) row.style.display = '';
+                    if (row) row.classList.remove('wompi-collapsed');
                 }
             });
 
@@ -1156,3 +891,114 @@ function wompi_ui_scripts()
     </script>
     <?php
 }
+
+function wompi_render_backend_license_panel()
+{
+    $CI = &get_instance();
+    $CI->load->library('wompi/Wompi_license');
+    
+    $is_valid = wompi_license_valid();
+    $status = $CI->wompi_license->getStatus();
+    $ctx = $CI->wompi_license->getVerifyContext();
+    $expiry = $CI->wompi_license->getExpiryDate();
+    
+    // Status Badge & Color styling
+    $status_badge_bg = '#fee2e2';
+    $status_badge_color = '#991b1b';
+    $status_badge_border = '#fca5a5';
+    
+    if ($status === 'Active' || $is_valid) {
+        if ($status === 'Grace Period') {
+            $status_badge_bg = '#ffedd5';
+            $status_badge_color = '#c2410c';
+            $status_badge_border = '#fdbb2d';
+        } else {
+            $status_badge_bg = '#dcfce7';
+            $status_badge_color = '#15803d';
+            $status_badge_border = '#86efac';
+        }
+    } elseif ($status === 'Grace Period') {
+        $status_badge_bg = '#ffedd5';
+        $status_badge_color = '#c2410c';
+        $status_badge_border = '#fdbb2d';
+    }
+    
+    // Format expiration and time remaining
+    $expiry_display = !empty($expiry) ? date('Y-m-d', strtotime($expiry)) : _l('wompi_backend_license_unlimited');
+    $remaining_display = _l('wompi_backend_license_unlimited');
+    
+    $trial_exp = get_option('wompi_trial_expires');
+    $is_trial = false;
+    
+    if ($status === 'Active' && !empty($expiry) && strtotime($expiry) > 0) {
+        $days_left = (int) ceil((strtotime($expiry) - time()) / 86400);
+        $remaining_display = $days_left > 0 ? sprintf(_l('wompi_backend_license_days_left'), $days_left) : _l('wompi_license_expired');
+    } elseif (!empty($trial_exp) && strtotime($trial_exp) > 0) {
+        $days_left = (int) ceil((strtotime($trial_exp) - time()) / 86400);
+        $is_trial = true;
+        $remaining_display = $days_left > 0 ? sprintf(_l('wompi_backend_license_days_left'), $days_left) : _l('wompi_license_expired');
+    }
+    
+    // Revalidation URL
+    $revalidate_url = site_url('admin/settings?group=payment_gateways&wompi_revalidate=1');
+    ?>
+    <script>
+    (function() {
+        document.addEventListener('DOMContentLoaded', function() {
+            var input = document.querySelector('[name="settings[paymentmethod_wompi_license_key]"]');
+            if (!input) return;
+            var formGroup = input.closest('.form-group');
+            if (!formGroup) return;
+
+            var card = document.createElement('div');
+            card.className = 'wompi-lic-card';
+            card.innerHTML = `
+                <h4 class="wompi-lic-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #6366f1;">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    <?php echo _l('wompi_backend_license_title'); ?>
+                </h4>
+                <div>
+                    <span class="wompi-lic-badge" style="background-color: <?php echo $status_badge_bg; ?>; color: <?php echo $status_badge_color; ?>; border-color: <?php echo $status_badge_border; ?>;">
+                        <?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?>
+                    </span>
+                </div>
+                <div class="wompi-lic-grid">
+                    <div class="wompi-lic-item">
+                        <span class="wompi-lic-label"><?php echo _l('wompi_backend_license_domain'); ?></span>
+                        <span class="wompi-lic-value"><?php echo htmlspecialchars($ctx['domain'], ENT_QUOTES, 'UTF-8'); ?></span>
+                    </div>
+                    <div class="wompi-lic-item">
+                        <span class="wompi-lic-label"><?php echo _l('wompi_backend_license_ip'); ?></span>
+                        <span class="wompi-lic-value"><?php echo htmlspecialchars($ctx['ip'], ENT_QUOTES, 'UTF-8'); ?></span>
+                    </div>
+                    <div class="wompi-lic-item">
+                        <span class="wompi-lic-label"><?php echo _l('wompi_backend_license_expiry'); ?></span>
+                        <span class="wompi-lic-value"><?php echo htmlspecialchars($expiry_display, ENT_QUOTES, 'UTF-8'); ?></span>
+                    </div>
+                    <div class="wompi-lic-item">
+                        <span class="wompi-lic-label"><?php echo _l('wompi_backend_license_remaining'); ?></span>
+                        <span class="wompi-lic-value" style="color: <?php echo ($status === 'Grace Period' || $is_trial) ? '#c2410c' : '#334155'; ?>;">
+                            <?php echo htmlspecialchars($remaining_display, ENT_QUOTES, 'UTF-8'); ?>
+                        </span>
+                    </div>
+                </div>
+                <div class="wompi-lic-item" style="margin-top: 12px; grid-column: span 2;">
+                    <span class="wompi-lic-label"><?php echo _l('wompi_backend_license_dir'); ?></span>
+                    <span class="wompi-lic-value" style="font-size: 11px;"><?php echo htmlspecialchars($ctx['dir'], ENT_QUOTES, 'UTF-8'); ?></span>
+                </div>
+                <a href="<?php echo $revalidate_url; ?>" class="wompi-lic-btn" onclick="this.innerHTML='<?php echo _l('wompi_backend_license_revalidating'); ?>';">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:4px;">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                    </svg>
+                    <?php echo _l('wompi_backend_license_revalidate'); ?>
+                </a>
+            `;
+            formGroup.parentNode.insertBefore(card, formGroup);
+        });
+    })();
+    </script>
+    <?php
+}
+

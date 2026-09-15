@@ -1,267 +1,13 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php echo payment_gateway_head('Resultado de tu Pago'); ?>
 
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+<link rel="stylesheet" type="text/css" href="<?php echo module_assets_url('wompi', 'assets/wompi.css') . '?v=' . WOMPI_MODULE_VERSION; ?>">
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    document.body.classList.add("wompi-result-body");
+  });
+</script>
 
-  :root {
-    --primary: #0f172a;
-    --accent: #6366f1;
-    --success: #10b981;
-    --error: #ef4444;
-    --pending: #f59e0b;
-    --glass: rgba(255, 255, 255, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.3);
-  }
-
-  body {
-    background: radial-gradient(circle at bottom right, #e2e8f0, #f8fafc);
-    font-family: 'Outfit', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0;
-    overflow: hidden;
-  }
-
-  /* Background Elements */
-  .bg-blob {
-    position: absolute;
-    width: 500px;
-    height: 500px;
-    background: var(--accent);
-    filter: blur(100px);
-    opacity: 0.15;
-    border-radius: 50%;
-    z-index: -1;
-    animation: pulse 10s infinite alternate;
-  }
-
-  @keyframes pulse {
-    from { transform: scale(1); opacity: 0.1; }
-    to { transform: scale(1.2); opacity: 0.2; }
-  }
-
-  .result-card {
-    background: var(--glass);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-    border: 1px solid var(--glass-border);
-    border-radius: 32px;
-    padding: 56px;
-    max-width: 480px;
-    width: 90%;
-    text-align: center;
-    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    position: relative;
-    transition: box-shadow 0.5s ease, transform 0.5s ease;
-  }
-
-  /* Glow Halos based on Status */
-  .result-card.APPROVED {
-    box-shadow: 0 30px 70px -15px rgba(16, 185, 129, 0.18), 0 0 100px -10px rgba(16, 185, 129, 0.1), 0 25px 50px -12px rgba(0, 0, 0, 0.12);
-  }
-  .result-card.PENDING {
-    box-shadow: 0 30px 70px -15px rgba(245, 158, 11, 0.18), 0 0 100px -10px rgba(245, 158, 11, 0.1), 0 25px 50px -12px rgba(0, 0, 0, 0.12);
-  }
-  .result-card.DECLINED, .result-card.ERROR {
-    box-shadow: 0 30px 70px -15px rgba(239, 68, 68, 0.18), 0 0 100px -10px rgba(239, 68, 68, 0.1), 0 25px 50px -12px rgba(0, 0, 0, 0.12);
-    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1), shakeCard 0.6s cubic-bezier(.36,.07,.19,.97) both;
-  }
-
-  @keyframes shakeCard {
-    10%, 90% { transform: translate3d(-1px, 0, 0); }
-    20%, 80% { transform: translate3d(2px, 0, 0); }
-    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-    40%, 60% { transform: translate3d(4px, 0, 0); }
-  }
-
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(40px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-
-  .wompi-logo {
-    width: 110px;
-    margin-bottom: 40px;
-    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));
-  }
-
-  .icon-box {
-    width: 88px;
-    height: 88px;
-    border-radius: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 32px;
-    position: relative;
-  }
-
-  .icon-box.APPROVED { background: rgba(16, 185, 129, 0.08); color: var(--success); }
-  .icon-box.PENDING  { background: rgba(245, 158, 11, 0.08); color: var(--pending); }
-  .icon-box.DECLINED, .icon-box.ERROR { background: rgba(239, 68, 68, 0.08); color: var(--error); }
-
-  /* Custom SVG Draw-In Animations */
-  .svg-icon {
-    width: 48px;
-    height: 48px;
-    stroke-width: 3.5;
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-  
-  /* Success Circle & Check */
-  .checkmark-circle {
-    stroke-dasharray: 166;
-    stroke-dashoffset: 166;
-    stroke: var(--success);
-    animation: stroke-draw 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-  .checkmark-check {
-    stroke-dasharray: 48;
-    stroke-dashoffset: 48;
-    stroke: var(--success);
-    animation: stroke-draw 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
-  }
-  
-  /* Cross Circle & Lines */
-  .cross-circle {
-    stroke-dasharray: 166;
-    stroke-dashoffset: 166;
-    stroke: var(--error);
-    animation: stroke-draw 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-  .cross-line1 {
-    stroke-dasharray: 48;
-    stroke-dashoffset: 48;
-    stroke: var(--error);
-    animation: stroke-draw 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.45s forwards;
-  }
-  .cross-line2 {
-    stroke-dasharray: 48;
-    stroke-dashoffset: 48;
-    stroke: var(--error);
-    animation: stroke-draw 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards;
-  }
-  
-  @keyframes stroke-draw {
-    to { stroke-dashoffset: 0; }
-  }
-  
-  /* Rotating Hourglass for Pending */
-  .pending-hourglass {
-    stroke: var(--pending);
-    animation: rotateHourglass 2.2s cubic-bezier(0.77, 0, 0.175, 1) infinite;
-  }
-  @keyframes rotateHourglass {
-    0% { transform: rotate(0deg); }
-    45%, 55% { transform: rotate(180deg); }
-    100% { transform: rotate(360deg); }
-  }
-
-  h2 {
-    font-size: 1.75rem;
-    font-weight: 800;
-    color: var(--primary);
-    margin-bottom: 12px;
-    letter-spacing: -0.5px;
-  }
-
-  .subtitle {
-    color: #64748b;
-    font-size: 1rem;
-    line-height: 1.6;
-    margin-bottom: 40px;
-  }
-
-  .details-box {
-    background: rgba(0,0,0,0.02);
-    border-radius: 24px;
-    padding: 24px;
-    margin-bottom: 40px;
-    border: 1px solid rgba(0,0,0,0.03);
-  }
-
-  .amount-text {
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--primary);
-    margin-bottom: 4px;
-  }
-
-  .tx-id {
-    font-size: 0.85rem;
-    color: #94a3b8;
-    font-family: monospace;
-  }
-
-  .btn-action {
-    display: inline-block;
-    background: var(--primary);
-    color: white;
-    text-decoration: none;
-    padding: 18px 40px;
-    border-radius: 18px;
-    font-weight: 600;
-    transition: all 0.3s;
-    width: 100%;
-    box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.2);
-  }
-
-  .btn-action:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.2);
-    color: #fff;
-    text-decoration: none;
-  }
-
-  .redirect-ui {
-    margin-top: 32px;
-  }
-
-  .redirect-text {
-    font-size: 0.85rem;
-    color: #94a3b8;
-    margin-bottom: 12px;
-  }
-
-  .progress-container {
-    height: 4px;
-    background: #f1f5f9;
-    border-radius: 10px;
-    overflow: hidden;
-  }
-
-  .progress-bar {
-    height: 100%;
-    background: var(--accent);
-    width: 0%;
-    animation: progressFill <?php echo $redirect_delay ?? 5; ?>s linear forwards;
-  }
-
-  @keyframes progressFill {
-    to { width: 100%; }
-  }
-
-  /* Success Pulse Ring */
-  .icon-box.APPROVED::after {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 24px;
-    border: 2px solid var(--success);
-    animation: iconPulse 2s infinite;
-  }
-
-  @keyframes iconPulse {
-    0% { transform: scale(1); opacity: 0.6; }
-    100% { transform: scale(1.4); opacity: 0; }
-  }
-</style>
 
 <div class="bg-blob"></div>
 
@@ -302,7 +48,24 @@
       <div class="amount-text"><?php echo $currency . ' ' . number_format($amount, 2, '.', ','); ?></div>
     <?php endif; ?>
     <?php if (!empty($transaction_id)): ?>
-      <div class="tx-id">Ref: <?php echo htmlspecialchars($transaction_id); ?></div>
+      <div class="tx-id" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <span>Ref: <span id="tx-id-value" style="font-weight: 700;"><?php echo htmlspecialchars($transaction_id); ?></span></span>
+        <button id="copy-tx-btn" title="Copiar ID de Transacción" style="background: none; border: none; padding: 4px; cursor: pointer; color: #94a3b8; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; border-radius: 6px; outline: none;">
+          <svg id="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <svg id="check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981; display: none; pointer-events: none;">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </button>
+      </div>
+      <style>
+        #copy-tx-btn:hover {
+          background: rgba(148, 163, 184, 0.12);
+          color: #475569 !important;
+        }
+      </style>
     <?php endif; ?>
   </div>
 
@@ -329,9 +92,11 @@
       var defaults = { origin: { y: 0.7 } };
 
       function fire(particleRatio, opts) {
-        confetti(Object.assign({}, defaults, opts, {
-          particleCount: Math.floor(count * particleRatio)
-        }));
+        if (typeof confetti === 'function') {
+          confetti(Object.assign({}, defaults, opts, {
+            particleCount: Math.floor(count * particleRatio)
+          }));
+        }
       }
 
       setTimeout(function() {
@@ -342,6 +107,30 @@
           fire(0.1, { spread: 120, startVelocity: 45 });
       }, 500);
     <?php endif; ?>
+
+    // Copiar ID de Transacción al Portapapeles
+    var copyBtn = document.getElementById('copy-tx-btn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var txId = document.getElementById('tx-id-value').textContent.trim();
+        navigator.clipboard.writeText(txId).then(function() {
+          var copyIcon = document.getElementById('copy-icon');
+          var checkIcon = document.getElementById('check-icon');
+          if (copyIcon && checkIcon) {
+            copyIcon.style.display = 'none';
+            checkIcon.style.display = 'inline-block';
+            copyBtn.style.color = '#10b981';
+            setTimeout(function() {
+              copyIcon.style.display = 'inline-block';
+              checkIcon.style.display = 'none';
+              copyBtn.style.color = '#94a3b8';
+            }, 2000);
+          }
+        });
+      });
+    }
 
     // Redirección
     var delay = <?php echo ($redirect_delay ?? 5) * 1000; ?>;

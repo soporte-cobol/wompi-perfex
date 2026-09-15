@@ -1,0 +1,743 @@
+/* ==========================================================================
+   1. CLIENT PAYMENT PANEL STYLES (wompi.php)
+   ========================================================================== */
+@keyframes wompiFadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.wompi-premium-panel {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 24px;
+    margin-top: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    text-align: left;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    animation: wompiFadeSlideIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.wompi-premium-panel:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    border-color: #cbd5e1;
+}
+.wompi-premium-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    border-bottom: 1px dashed #e2e8f0;
+    padding-bottom: 14px;
+}
+.wompi-premium-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.wompi-premium-title svg {
+    color: #6366f1;
+}
+.wompi-secure-badge {
+    font-size: 11px;
+    background: #f0fdf4;
+    color: #166534;
+    padding: 4px 10px;
+    border-radius: 30px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid #bbf7d0;
+}
+
+/* Grid of logos in a single horizontal line */
+.wompi-logos-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+.wompi-logo-item {
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 12px;
+    padding: 12px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    min-height: 84px;
+    position: relative;
+}
+.wompi-logo-item:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.04);
+}
+.wompi-logo-img {
+    max-height: 34px;
+    max-width: 90%;
+    object-fit: contain;
+    filter: grayscale(10%) contrast(105%);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.wompi-logo-item:hover .wompi-logo-img {
+    filter: grayscale(0%) contrast(110%);
+    transform: scale(1.05);
+}
+.wompi-logo-caption {
+    font-size: 8px;
+    color: #475569;
+    margin-top: 8px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.1px;
+    white-space: nowrap;
+}
+
+/* Combined Visa & Mastercard wrapper inside the 5th card */
+.wompi-cards-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    max-width: 90%;
+    height: 34px;
+}
+.wompi-logo-img.card-brand {
+    max-height: 24px;
+    width: auto;
+    max-width: 45%;
+}
+
+/* Premium custom button with subtle pulse */
+.wompi-btn-premium {
+    width: 100%;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+    text-transform: none !important;
+    letter-spacing: 0.1px;
+}
+.wompi-btn-premium:hover {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
+    color: #ffffff !important;
+}
+.wompi-btn-premium:active {
+    transform: translateY(0);
+}
+
+@keyframes wompiPulse {
+    0% { box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12); }
+    50% { box-shadow: 0 4px 20px rgba(99, 102, 241, 0.25); transform: translateY(-0.5px); }
+    100% { box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12); }
+}
+.wompi-btn-premium:not(.loading) {
+    animation: wompiPulse 4s infinite ease-in-out;
+}
+
+/* Shimmer reflection animation */
+.wompi-btn-premium::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -50%;
+    width: 30%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0) 100%);
+    transform: skewX(-25deg);
+    animation: wompiShimmer 5s infinite;
+}
+@keyframes wompiShimmer {
+    0% { left: -150%; }
+    30% { left: 150%; }
+    100% { left: 150%; }
+}
+
+/* Loading spinner */
+.wompi-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-radius: 50%;
+    border-top-color: #ffffff;
+    animation: wompiSpin 0.8s linear infinite;
+    display: none;
+}
+@keyframes wompiSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* Active loading state */
+.wompi-btn-premium.loading {
+    pointer-events: none;
+    opacity: 0.9;
+    background: #1e293b;
+}
+.wompi-btn-premium.loading .wompi-spinner {
+    display: inline-block;
+}
+.wompi-btn-premium.loading .wompi-btn-icon {
+    display: none;
+}
+
+.wompi-btn-icon {
+    transition: transform 0.2s ease;
+}
+.wompi-btn-premium:hover .wompi-btn-icon {
+    transform: translateX(1px);
+}
+
+/* Footnote */
+.wompi-premium-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 14px;
+    font-size: 11px;
+    color: #64748b;
+}
+.wompi-premium-footer svg {
+    color: #94a3b8;
+}
+
+/* Hide Wompi's default button completely */
+#wompi-simple-container .wompi-button-wrapper button.wompi-button {
+    display: none !important;
+}
+
+/* Accessible visually-hidden helper to allow script dimensions to initialize */
+.wompi-hidden-accessible {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Custom CSS Tooltips */
+.wompi-logo-item::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background: #0f172a;
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 100;
+    border: 1px solid #334155;
+}
+.wompi-logo-item::before {
+    content: '';
+    position: absolute;
+    bottom: 105%;
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    border-width: 5px;
+    border-style: solid;
+    border-color: #0f172a transparent transparent transparent;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 100;
+}
+.wompi-logo-item:hover::after,
+.wompi-logo-item:hover::before {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Smooth Amount field height & opacity transitions */
+.wompi-amount-container-transition {
+    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, margin 0.4s ease, padding 0.4s ease;
+    overflow: hidden;
+    max-height: 200px;
+    opacity: 1;
+}
+.wompi-amount-container-transition.wompi-collapsed {
+    max-height: 0 !important;
+    opacity: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    border: none !important;
+}
+
+/* Unifed styling for paid order bars */
+.wompi-status-bar-paid {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    color: #ffffff;
+    border-radius: 12px;
+    padding: 14px 24px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+    text-align: center;
+    animation: wompiFadeSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.wompi-status-bar-paid.general {
+    flex-direction: row;
+    gap: 8px;
+}
+
+@media (max-width: 480px) {
+    .wompi-logos-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+    }
+    .wompi-logo-item {
+        min-height: 64px;
+        padding: 8px 2px;
+        border-radius: 8px;
+    }
+    .wompi-logo-img {
+        max-height: 24px;
+    }
+    .wompi-cards-wrapper {
+        height: 24px;
+        gap: 2px;
+    }
+    .wompi-logo-caption {
+        font-size: 7px;
+        margin-top: 5px;
+    }
+    .wompi-premium-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .wompi-secure-badge {
+        align-self: flex-start;
+    }
+    /* Disable tooltips on mobile screens */
+    .wompi-logo-item::after,
+    .wompi-logo-item::before {
+        display: none !important;
+    }
+}
+
+/* ==========================================================================
+   2. BACKEND LICENSE CARD STYLES (wompi.php)
+   ========================================================================== */
+.wompi-lic-card {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.025);
+    font-family: inherit;
+}
+.wompi-lic-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-top: 0;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.wompi-lic-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    border: 1px solid;
+}
+.wompi-lic-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+    font-size: 12px;
+}
+.wompi-lic-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.wompi-lic-label {
+    color: #64748b;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+.wompi-lic-value {
+    color: #334155;
+    font-weight: 700;
+    font-family: monospace;
+    word-break: break-all;
+}
+.wompi-lic-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 16px;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+}
+.wompi-lic-btn svg {
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.wompi-lic-btn:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+    color: #0f172a;
+}
+.wompi-lic-btn:hover svg {
+    transform: rotate(180deg);
+}
+
+/* Custom glowing focus inputs in backend */
+input[name^="settings[paymentmethod_wompi_"]:focus,
+select[name^="settings[paymentmethod_wompi_"]:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+    outline: none !important;
+}
+
+@media(max-width: 768px) {
+    .wompi-lic-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================================
+   3. PAYMENT RESULT CARD STYLES (views/payment_result.php)
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+
+:root {
+  --wompi-res-primary: #0f172a;
+  --wompi-res-accent: #6366f1;
+  --wompi-res-success: #10b981;
+  --wompi-res-error: #ef4444;
+  --wompi-res-pending: #f59e0b;
+  --wompi-res-glass: rgba(255, 255, 255, 0.85);
+  --wompi-res-glass-border: rgba(255, 255, 255, 0.3);
+}
+
+.wompi-result-body {
+  background: radial-gradient(circle at bottom right, #e2e8f0, #f8fafc);
+  font-family: 'Outfit', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* Background Elements */
+.wompi-result-body .bg-blob {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: var(--wompi-res-accent);
+  filter: blur(100px);
+  opacity: 0.15;
+  border-radius: 50%;
+  z-index: -1;
+  animation: pulseWompiResult 10s infinite alternate;
+}
+
+@keyframes pulseWompiResult {
+  from { transform: scale(1); opacity: 0.1; }
+  to { transform: scale(1.2); opacity: 0.2; }
+}
+
+.wompi-result-body .result-card {
+  background: var(--wompi-res-glass);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid var(--wompi-res-glass-border);
+  border-radius: 32px;
+  padding: 56px;
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+  animation: slideUpWompiResult 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  transition: box-shadow 0.5s ease, transform 0.5s ease;
+}
+
+/* Glow Halos based on Status */
+.wompi-result-body .result-card.APPROVED {
+  box-shadow: 0 30px 70px -15px rgba(16, 185, 129, 0.18), 0 0 100px -10px rgba(16, 185, 129, 0.1), 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+}
+.wompi-result-body .result-card.PENDING {
+  box-shadow: 0 30px 70px -15px rgba(245, 158, 11, 0.18), 0 0 100px -10px rgba(245, 158, 11, 0.1), 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+}
+.wompi-result-body .result-card.DECLINED, .wompi-result-body .result-card.ERROR {
+  box-shadow: 0 30px 70px -15px rgba(239, 68, 68, 0.18), 0 0 100px -10px rgba(239, 68, 68, 0.1), 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+  animation: slideUpWompiResult 0.6s cubic-bezier(0.16, 1, 0.3, 1), shakeCardWompiResult 0.6s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shakeCardWompiResult {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+@keyframes slideUpWompiResult {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.wompi-result-body .wompi-logo {
+  width: 110px;
+  margin-bottom: 40px;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));
+}
+
+.wompi-result-body .icon-box {
+  width: 88px;
+  height: 88px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 32px;
+  position: relative;
+}
+
+.wompi-result-body .icon-box.APPROVED { background: rgba(16, 185, 129, 0.08); color: var(--wompi-res-success); }
+.wompi-result-body .icon-box.PENDING  { background: rgba(245, 158, 11, 0.08); color: var(--wompi-res-pending); }
+.wompi-result-body .icon-box.DECLINED, .wompi-result-body .icon-box.ERROR { background: rgba(239, 68, 68, 0.08); color: var(--wompi-res-error); }
+
+/* Custom SVG Draw-In Animations */
+.wompi-result-body .svg-icon {
+  width: 48px;
+  height: 48px;
+  stroke-width: 3.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Success Circle & Check */
+.wompi-result-body .checkmark-circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke: var(--wompi-res-success);
+  animation: strokeDrawWompiResult 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.wompi-result-body .checkmark-check {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  stroke: var(--wompi-res-success);
+  animation: strokeDrawWompiResult 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+}
+
+/* Cross Circle & Lines */
+.wompi-result-body .cross-circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke: var(--wompi-res-error);
+  animation: strokeDrawWompiResult 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.wompi-result-body .cross-line1 {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  stroke: var(--wompi-res-error);
+  animation: strokeDrawWompiResult 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.45s forwards;
+}
+.wompi-result-body .cross-line2 {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  stroke: var(--wompi-res-error);
+  animation: strokeDrawWompiResult 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards;
+}
+
+@keyframes strokeDrawWompiResult {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Rotating Hourglass for Pending */
+.wompi-result-body .pending-hourglass {
+  stroke: var(--wompi-res-pending);
+  animation: rotateHourglassWompiResult 2.2s cubic-bezier(0.77, 0, 0.175, 1) infinite;
+}
+@keyframes rotateHourglassWompiResult {
+  0% { transform: rotate(0deg); }
+  45%, 55% { transform: rotate(180deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.wompi-result-body h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--wompi-res-primary);
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
+
+.wompi-result-body .subtitle {
+  color: #64748b;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+.wompi-result-body .details-box {
+  background: rgba(0,0,0,0.02);
+  border-radius: 24px;
+  padding: 24px;
+  margin-bottom: 40px;
+  border: 1px solid rgba(0,0,0,0.03);
+}
+
+.wompi-result-body .amount-text {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--wompi-res-primary);
+  margin-bottom: 4px;
+}
+
+.wompi-result-body .tx-id {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+.wompi-result-body .btn-action {
+  display: inline-block;
+  background: var(--wompi-res-primary);
+  color: white;
+  text-decoration: none;
+  padding: 18px 40px;
+  border-radius: 18px;
+  font-weight: 600;
+  transition: all 0.3s;
+  width: 100%;
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.2);
+}
+
+.wompi-result-body .btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.2);
+  color: #fff;
+  text-decoration: none;
+}
+
+.wompi-result-body .redirect-ui {
+  margin-top: 32px;
+}
+
+.wompi-result-body .redirect-text {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-bottom: 12px;
+}
+
+.wompi-result-body .progress-container {
+  height: 4px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.wompi-result-body .progress-bar {
+  height: 100%;
+  background: var(--wompi-res-accent);
+  width: 0%;
+}
+
+/* Success Pulse Ring */
+.wompi-result-body .icon-box.APPROVED::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  border: 2px solid var(--wompi-res-success);
+  animation: iconPulseWompiResult 2s infinite;
+}
+
+@keyframes iconPulseWompiResult {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.wompi-result-body #copy-tx-btn:hover {
+  background: rgba(148, 163, 184, 0.12);
+  color: #475569 !important;
+}
+
+/* Copy button hover transformations */
+#copy-tx-btn svg {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#copy-tx-btn:hover svg {
+  transform: scale(1.1) rotate(5deg);
+}
+#copy-tx-btn:active svg {
+  transform: scale(0.9) rotate(-5deg);
+}

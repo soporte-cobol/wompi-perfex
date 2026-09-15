@@ -125,16 +125,23 @@ class Callback extends App_Controller
             return;
         }
 
-        // Register payment in Perfex if approved
-        if ($status === 'APPROVED' && !$this->_payment_exists($tx_id)) {
-            log_message('info', '[Wompi] response(): recording payment invoice_id=' . $invoice_id . ' tx=' . $tx_id . ' amount=' . $amount . ' ' . $currency);
-            $this->payments_model->add([
-                'amount'        => $amount,
-                'invoiceid'     => $invoice_id,
-                'paymentmode'   => 'wompi',
-                'transactionid' => $tx_id,
-                'note'          => 'Pago aprobado vía Wompi Checkout',
-            ]);
+        // Register payment in Perfex if approved (using concurrency lock)
+        if ($status === 'APPROVED') {
+            $this->_acquire_lock($tx_id);
+            try {
+                if (!$this->_payment_exists($tx_id)) {
+                    log_message('info', '[Wompi] response(): recording payment invoice_id=' . $invoice_id . ' tx=' . $tx_id . ' amount=' . $amount . ' ' . $currency);
+                    $this->payments_model->add([
+                        'amount'        => $amount,
+                        'invoiceid'     => $invoice_id,
+                        'paymentmode'   => 'wompi',
+                        'transactionid' => $tx_id,
+                        'note'          => 'Pago aprobado vía Wompi Checkout',
+                    ]);
+                }
+            } finally {
+                $this->_release_lock($tx_id);
+            }
         }
 
         // Render the custom result view (auto-redirects after delay)
@@ -255,22 +262,27 @@ class Callback extends App_Controller
 
         // -- Process approved transactions -------------------------------------
         if ($status === 'APPROVED') {
-            if (!$this->_payment_exists($tx_id)) {
-                $added = $this->payments_model->add([
-                    'amount'        => $amount,
-                    'invoiceid'     => $invoice_id,
-                    'paymentmode'   => 'wompi',
-                    'transactionid' => $tx_id,
-                    'note'          => 'Pago aprobado vía Wompi Webhook',
-                ]);
+            $this->_acquire_lock($tx_id);
+            try {
+                if (!$this->_payment_exists($tx_id)) {
+                    $added = $this->payments_model->add([
+                        'amount'        => $amount,
+                        'invoiceid'     => $invoice_id,
+                        'paymentmode'   => 'wompi',
+                        'transactionid' => $tx_id,
+                        'note'          => 'Pago aprobado vía Wompi Webhook',
+                    ]);
 
-                if ($added) {
-                    log_message('info', '[Wompi Webhook] Payment recorded for invoice #' . $invoice_id . ', tx: ' . $tx_id);
+                    if ($added) {
+                        log_message('info', '[Wompi Webhook] Payment recorded for invoice #' . $invoice_id . ', tx: ' . $tx_id);
+                    } else {
+                        log_message('error', '[Wompi Webhook] Failed to record payment for invoice #' . $invoice_id);
+                    }
                 } else {
-                    log_message('error', '[Wompi Webhook] Failed to record payment for invoice #' . $invoice_id);
+                    log_message('info', '[Wompi Webhook] Duplicate tx ignored: ' . $tx_id);
                 }
-            } else {
-                log_message('info', '[Wompi Webhook] Duplicate tx ignored: ' . $tx_id);
+            } finally {
+                $this->_release_lock($tx_id);
             }
         }
 
@@ -281,6 +293,31 @@ class Callback extends App_Controller
     // -------------------------------------------------------------------------
     // PRIVATE HELPERS
     // -------------------------------------------------------------------------
+
+    /**
+     * Acquire a named lock for transaction processing to prevent duplicate inserts (idempotency).
+     *
+     * @param string $tx_id
+     * @return bool
+     */
+    private function _acquire_lock($tx_id)
+    {
+        $lock_name = 'wompi_pay_lock_' . md5($tx_id);
+        $query = $this->db->query("SELECT GET_LOCK(?, 10) AS locked", [$lock_name]);
+        $row = $query->row();
+        return !empty($row->locked);
+    }
+
+    /**
+     * Release a named lock for transaction processing.
+     *
+     * @param string $tx_id
+     */
+    private function _release_lock($tx_id)
+    {
+        $lock_name = 'wompi_pay_lock_' . md5($tx_id);
+        $this->db->query("SELECT RELEASE_LOCK(?)", [$lock_name]);
+    }
 
     /**
      * Fetch a transaction from the Wompi API.
@@ -299,6 +336,8 @@ class Callback extends App_Controller
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => 15,
             CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
         ]);
 
         $response  = curl_exec($ch);
