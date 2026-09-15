@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php echo payment_gateway_head('Resultado de tu Pago'); ?>
 
-<link rel="stylesheet" type="text/css" href="<?php echo module_assets_url('wompi', 'assets/wompi.css') . '?v=' . WOMPI_MODULE_VERSION; ?>">
+<link rel="stylesheet" type="text/css" href="<?php echo (function_exists('module_assets_url') ? module_assets_url('wompi', 'assets/wompi.css') : site_url('modules/wompi/assets/wompi.css')) . '?v=' . WOMPI_MODULE_VERSION; ?>">
 <script>
   document.addEventListener("DOMContentLoaded", function() {
     document.body.classList.add("wompi-result-body");

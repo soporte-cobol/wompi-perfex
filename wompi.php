@@ -262,7 +262,7 @@ function wompi_ui_scripts()
     // No invoice context is available there.
     if ($is_admin_payment_gateways) {
         wompi_license_valid();
-        echo '<link rel="stylesheet" type="text/css" href="' . module_assets_url('wompi', 'assets/wompi.css') . '?v=' . WOMPI_MODULE_VERSION . '">';
+        echo '<link rel="stylesheet" type="text/css" href="' . (function_exists('module_assets_url') ? module_assets_url('wompi', 'assets/wompi.css') : site_url('modules/wompi/assets/wompi.css')) . '?v=' . WOMPI_MODULE_VERSION . '">';
         wompi_render_backend_license_panel();
         return;
     }
@@ -360,7 +360,7 @@ function wompi_ui_scripts()
     }
 
     // Inject unified stylesheet
-    echo '<link rel="stylesheet" type="text/css" href="' . module_assets_url('wompi', 'assets/wompi.css') . '?v=' . WOMPI_MODULE_VERSION . '">';
+    echo '<link rel="stylesheet" type="text/css" href="' . (function_exists('module_assets_url') ? module_assets_url('wompi', 'assets/wompi.css') : site_url('modules/wompi/assets/wompi.css')) . '?v=' . WOMPI_MODULE_VERSION . '">';
     ?>
     <div id="wompi-simple-container" aria-hidden="true">
         <?php if ($can_render_widget): ?>
