@@ -30,10 +30,9 @@
 }
 @media (min-width: 768px) {
     .wompi-premium-panel {
-        width: 600px;
-        max-width: 100%;
-        margin-left: auto;
-        margin-right: auto;
+        width: 640px !important;
+        max-width: 95vw !important;
+        margin-left: calc(50% - 320px) !important;
     }
 }
 .wompi-premium-panel:hover {

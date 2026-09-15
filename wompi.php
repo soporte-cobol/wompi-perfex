@@ -361,6 +361,18 @@ function wompi_ui_scripts()
 
     // Inject unified stylesheet
     echo '<link rel="stylesheet" type="text/css" href="' . site_url('wompi/callback/css') . '?v=' . WOMPI_MODULE_VERSION . '">';
+
+    // Exceptionally robust FOUC (Flicker of Unstyled Content) prevention for partial payments
+    if (!$allow_partial) {
+        echo '<style>';
+        echo '#online_payment_form .form-group:has(input[name="amount"]), ';
+        echo '#online_payment_form .col-md-12:has(input[name="amount"]), ';
+        echo '#online_payment_form input[name="amount"], ';
+        echo 'input[name="amount"] { ';
+        echo '    display: none !important; ';
+        echo '} ';
+        echo '</style>';
+    }
     ?>
     <div id="wompi-simple-container" aria-hidden="true">
         <?php if ($can_render_widget): ?>
