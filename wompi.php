@@ -242,6 +242,10 @@ hooks()->add_action('admin_footer', 'wompi_ui_scripts');
 function wompi_ui_scripts()
 {
     $CI = &get_instance();
+    
+    // Diagnostic log to identify the exact active file on the server
+    echo '<script>console.log("🔍 Wompi Active File: ' . addslashes(str_replace('\\', '/', __FILE__)) . '");</script>';
+
     $admin_folder = function_exists('get_admin_uri') ? get_admin_uri() : 'admin';
     
     $is_client = $CI->uri->segment(1) === 'invoice' || $CI->uri->segment(1) === 'invoices';
