@@ -12,14 +12,24 @@ class Wompi_gateway extends App_gateway
         parent::__construct();
 
         // Dynamically override allow_partial_payments based on database setting so Perfex natively hides/shows the amount input
-        $this->allow_partial_payments = (get_option('paymentmethod_wompi_allow_partial_payments') === '1');
+        // Only query the options database if the CodeIgniter instance and database connections are fully initialized.
+        try {
+            $CI = &get_instance();
+            if ($CI && isset($CI->db) && $CI->db->conn_id && function_exists('get_option')) {
+                $this->allow_partial_payments = (get_option('paymentmethod_wompi_allow_partial_payments') === '1');
+            } else {
+                $this->allow_partial_payments = false; // safe default during early boot
+            }
+        } catch (Throwable $e) {
+            $this->allow_partial_payments = false;
+        }
 
         // Perfex loads gateway libraries on the payment gateways settings page.
         // Trigger license validation there so admins see the real state and logs are emitted.
         try {
-            if (function_exists('wompi_license_valid')) {
-                $CI = &get_instance();
-                if ($CI && $CI->uri->segment(1) === 'admin'
+            $CI = &get_instance();
+            if ($CI && isset($CI->db) && $CI->db->conn_id && function_exists('wompi_license_valid')) {
+                if ($CI->uri->segment(1) === 'admin'
                     && $CI->uri->segment(2) === 'settings'
                     && $CI->input->get('group') === 'payment_gateways') {
                     wompi_license_valid();

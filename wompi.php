@@ -325,7 +325,13 @@ function wompi_ui_scripts()
     $integrity_secret = $gateway->decryptSetting('integrity_secret');
 
     $can_render_widget = $licensed && !empty($public_key) && !empty($integrity_secret);
-    $is_admin_user      = function_exists('is_admin') && is_admin();
+    
+    // Exceptionally defensive check for is_admin() to prevent any potential error on client-side loading
+    $is_admin_user = false;
+    if (function_exists('is_staff_logged_in') && is_staff_logged_in() && function_exists('is_admin')) {
+        $is_admin_user = is_admin();
+    }
+    
     $should_render_panel = $can_render_widget || $is_admin_user;
 
     // Resolve Logo Assets dynamically: load them safely through the Callback controller to bypass modules/.htaccess access restrictions.
