@@ -458,6 +458,26 @@ class Callback extends App_Controller
     }
 
     /**
+     * Serve CSS stylesheet securely to bypass modules/.htaccess access restrictions.
+     * URL example: /wompi/callback/css
+     */
+    public function css()
+    {
+        $css_path = module_dir_path('wompi', 'assets/wompi.css');
+        if (!file_exists($css_path)) {
+            show_404();
+            return;
+        }
+
+        header('Content-Type: text/css');
+        header('Cache-Control: public, max-age=604800, must-revalidate'); // Cache for 7 days
+        header('Content-Length: ' . filesize($css_path));
+
+        readfile($css_path);
+        exit;
+    }
+
+    /**
      * Check whether a payment with the given transaction ID already exists
      * to prevent double-recording (idempotency).
      *

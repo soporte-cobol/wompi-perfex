@@ -262,7 +262,7 @@ function wompi_ui_scripts()
     // No invoice context is available there.
     if ($is_admin_payment_gateways) {
         wompi_license_valid();
-        echo '<link rel="stylesheet" type="text/css" href="' . (function_exists('module_assets_url') ? module_assets_url('wompi', 'assets/wompi.css') : site_url('modules/wompi/assets/wompi.css')) . '?v=' . WOMPI_MODULE_VERSION . '">';
+        echo '<link rel="stylesheet" type="text/css" href="' . site_url('wompi/callback/css') . '?v=' . WOMPI_MODULE_VERSION . '">';
         wompi_render_backend_license_panel();
         return;
     }
@@ -360,7 +360,7 @@ function wompi_ui_scripts()
     }
 
     // Inject unified stylesheet
-    echo '<link rel="stylesheet" type="text/css" href="' . (function_exists('module_assets_url') ? module_assets_url('wompi', 'assets/wompi.css') : site_url('modules/wompi/assets/wompi.css')) . '?v=' . WOMPI_MODULE_VERSION . '">';
+    echo '<link rel="stylesheet" type="text/css" href="' . site_url('wompi/callback/css') . '?v=' . WOMPI_MODULE_VERSION . '">';
     ?>
     <div id="wompi-simple-container" aria-hidden="true">
         <?php if ($can_render_widget): ?>
@@ -630,21 +630,57 @@ function wompi_ui_scripts()
 
             var form = findPaymentForm();
             var container = document.getElementById('wompi-simple-container');
-            if (!form || !container) return;
+            if (!container) return;
 
             // Replace the original Perfex submit button in-place (same location in the DOM).
-            var submitBtn = form.querySelector('#pay_now, button[type="submit"], input[type="submit"]');
-            var payButtonWrap = document.getElementById('pay_button');
-            if (submitBtn) {
-                // Prefer inserting where Perfex renders the pay button.
-                if (payButtonWrap && container.parentNode !== payButtonWrap.parentNode) {
-                    payButtonWrap.parentNode.insertBefore(container, payButtonWrap);
+            if (form) {
+                // EXTREMELY IMPORTANT: We must NOT select any submit button that is inside our own #wompi-simple-container!
+                // Otherwise, when Wompi renders its widget inside the container, we select that button and try to insert the container inside itself,
+                // causing a "Failed to execute 'insertBefore' on 'Node': The new child element contains the parent." HierarchyRequestError!
+                var submitBtn = null;
+                var buttons = form.querySelectorAll('#pay_now, button[type="submit"], input[type="submit"], button#pay_now');
+                for (var i = 0; i < buttons.length; i++) {
+                    var btn = buttons[i];
+                    if (container.contains(btn)) {
+                        continue; // Skip any buttons inside our own container!
+                    }
+                    submitBtn = btn;
+                    break;
+                }
+
+                var payButtonWrap = document.getElementById('pay_button');
+                if (submitBtn) {
+                    // Prefer inserting where Perfex renders the pay button.
+                    if (payButtonWrap && container.parentNode !== payButtonWrap.parentNode) {
+                        payButtonWrap.parentNode.insertBefore(container, payButtonWrap);
+                    } else {
+                        submitBtn.parentNode.insertBefore(container, submitBtn);
+                    }
                 } else {
-                    submitBtn.parentNode.insertBefore(container, submitBtn);
+                    // Append directly to the form if submitBtn is missing
+                    form.appendChild(container);
+                }
+            } else if (isAdminView || isAdminUser) {
+                // If we are in the admin preview or are an admin user and there is no form,
+                // find a prominent place to insert our container so it can be previewed!
+                // Commonly inside .invoice-preview, #invoice-preview, or simply append to body if nothing else.
+                var previewArea = document.querySelector('.invoice-preview-container') || 
+                                  document.querySelector('.invoice-preview') || 
+                                  document.querySelector('#invoice-preview') ||
+                                  document.querySelector('.panel-body');
+                if (previewArea && container.parentNode !== previewArea) {
+                    previewArea.appendChild(container);
                 }
             }
 
             var show = selectedModeIsWompi();
+            
+            // If the logged-in user is an administrator, force display so they can preview the changes,
+            // the branding, the logos, and verify settings.
+            if (isAdminUser || isAdminView) {
+                show = true;
+            }
+
             container.style.display = show ? 'block' : 'none';
             container.setAttribute('aria-hidden', show ? 'false' : 'true');
 
@@ -656,7 +692,7 @@ function wompi_ui_scripts()
             } else {
                 // Licensed: hide Perfex submit completely when Wompi is selected (simple, avoids double-submit confusion).
                 if (submitBtn) {
-                    if (show) {
+                    if (show && !isAdminView) { // Only hide the submit button for clients on actual payment pages
                         if (!submitBtn.dataset.wompiOriginalDisplay) {
                             submitBtn.dataset.wompiOriginalDisplay = submitBtn.style.display || '';
                         }
@@ -666,7 +702,7 @@ function wompi_ui_scripts()
                     }
                 }
                 if (payButtonWrap) {
-                    payButtonWrap.style.display = show ? 'none' : '';
+                    payButtonWrap.style.display = (show && !isAdminView) ? 'none' : '';
                 }
             }
 
