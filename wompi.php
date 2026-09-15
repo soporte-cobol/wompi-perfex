@@ -650,11 +650,16 @@ function wompi_ui_scripts()
 
                 var payButtonWrap = document.getElementById('pay_button');
                 if (submitBtn) {
-                    // Prefer inserting where Perfex renders the pay button.
-                    if (payButtonWrap && container.parentNode !== payButtonWrap.parentNode) {
-                        payButtonWrap.parentNode.insertBefore(container, payButtonWrap);
+                    if (payButtonWrap) {
+                        // If payButtonWrap exists, always insert before it (and keep it there!)
+                        if (container.parentNode !== payButtonWrap.parentNode) {
+                            payButtonWrap.parentNode.insertBefore(container, payButtonWrap);
+                        }
                     } else {
-                        submitBtn.parentNode.insertBefore(container, submitBtn);
+                        // Otherwise, insert before the submit button
+                        if (container.parentNode !== submitBtn.parentNode) {
+                            submitBtn.parentNode.insertBefore(container, submitBtn);
+                        }
                     }
                 } else {
                     // Append directly to the form if submitBtn is missing
