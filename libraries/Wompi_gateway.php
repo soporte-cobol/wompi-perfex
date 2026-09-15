@@ -11,6 +11,9 @@ class Wompi_gateway extends App_gateway
 
         parent::__construct();
 
+        // Dynamically override allow_partial_payments based on database setting so Perfex natively hides/shows the amount input
+        $this->allow_partial_payments = (get_option('paymentmethod_wompi_allow_partial_payments') === '1');
+
         // Perfex loads gateway libraries on the payment gateways settings page.
         // Trigger license validation there so admins see the real state and logs are emitted.
         try {

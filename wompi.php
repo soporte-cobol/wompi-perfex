@@ -516,7 +516,11 @@ function wompi_ui_scripts()
         var isPaid = <?php echo $is_paid ? 'true' : 'false'; ?>;
 
         function findPaymentForm() {
-            return document.querySelector('#online_payment_form') || document.querySelector('#invoice_payment_form');
+            return document.querySelector('#online_payment_form') || 
+                   document.querySelector('#invoice_payment_form') ||
+                   document.querySelector('form[action*="payment"]') ||
+                   document.querySelector('form[action*="process"]') ||
+                   document.querySelector('form');
         }
 
         // Visual-only formatting: COP is typically shown without decimals in Colombia.
@@ -569,40 +573,44 @@ function wompi_ui_scripts()
         }
 
         function selectedModeIsWompi() {
-            // Common Perfex templates: radio group name="payment_mode"
-            var radio = document.querySelector('input[type="radio"][name="payment_mode"][value="wompi"]:checked');
-            if (radio) return true;
+            var form = findPaymentForm();
+            if (!form) return false;
 
-            // Your template uses name="paymentmode"
-            var radio2 = document.querySelector('input[type="radio"][name="paymentmode"][value="wompi"]:checked');
-            if (radio2) return true;
+            // 1. Check for hidden inputs (implicit selection when only one mode is active or pre-selected)
+            var hiddenMode = form.querySelector('input[type="hidden"][name="payment_mode"][value="wompi"]') ||
+                             form.querySelector('input[type="hidden"][name="paymentmode"][value="wompi"]') ||
+                             form.querySelector('input[type="hidden"][value="wompi"]');
+            if (hiddenMode) return true;
 
-            // Also support the concrete id used in your HTML.
-            var byId = document.getElementById('pm_wompi');
-            if (byId && byId.checked) return true;
-            // If it's the ONLY online payment option and it's Wompi, treat it as selected even if
-            // the theme auto-check happens after our script runs.
-            if (byId && String(byId.value).toLowerCase() === 'wompi') {
-                var form = findPaymentForm();
-                if (form) {
-                    var wompiRadios = form.querySelectorAll('input[type="radio"][value="wompi"]');
-                    var allRadios   = form.querySelectorAll('input[type="radio"]');
-                    if (wompiRadios.length === 1 && allRadios.length === 1) {
-                        return true;
-                    }
+            // 2. Check radios (both common names)
+            var radios = form.querySelectorAll('input[type="radio"][name="payment_mode"], input[type="radio"][name="paymentmode"], input[type="radio"][value="wompi"]');
+            if (radios.length > 0) {
+                var checkedRadio = form.querySelector('input[type="radio"][name="payment_mode"][value="wompi"]:checked') ||
+                                   form.querySelector('input[type="radio"][name="paymentmode"][value="wompi"]:checked') ||
+                                   form.querySelector('input[type="radio"][value="wompi"]:checked');
+                if (checkedRadio) return true;
+                
+                // If there are radios, but none of them is checked, check if there is only 1 radio option and it is wompi
+                if (radios.length === 1 && String(radios[0].value).toLowerCase() === 'wompi') {
+                    return true;
                 }
             }
 
-            // Some templates use selects
-            var select =
-                document.querySelector('select[name="payment_mode"]') ||
-                document.querySelector('select#payment_mode') ||
-                document.querySelector('select[name="paymentmode"]');
-            if (select && String(select.value).toLowerCase() === 'wompi') return true;
+            // 3. Check select dropdowns
+            var select = form.querySelector('select[name="payment_mode"]') ||
+                         form.querySelector('select#payment_mode') ||
+                         form.querySelector('select[name="paymentmode"]');
+            if (select) {
+                if (String(select.value).toLowerCase() === 'wompi') return true;
+            }
 
-            // Fallback: any checked radio with value wompi, regardless of name
-            var anyRadio = document.querySelector('input[type="radio"][value="wompi"]:checked');
-            return !!anyRadio;
+            // 4. If there are absolutely no choice elements (no radios, no select) inside the payment form,
+            // then Wompi is implicitly selected because it's the only active gateway.
+            if (radios.length === 0 && !select) {
+                return true;
+            }
+
+            return false;
         }
 
         function toggleSimpleWidget() {
