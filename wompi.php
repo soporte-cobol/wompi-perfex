@@ -249,16 +249,15 @@ function wompi_ui_scripts()
     $controller = strtolower($CI->router->fetch_class() ?? '');
     
     $is_client = in_array(strtolower($CI->uri->segment(1) ?? ''), ['invoice', 'invoices'], true);
-    $is_admin_settings = ($controller === 'settings' && is_staff_logged_in());
-    $is_admin_invoice_or_payment = in_array($controller, ['invoices', 'payments'], true) && is_staff_logged_in();
+    $is_staff = function_exists('is_staff_logged_in') && is_staff_logged_in();
 
-    if (!$is_client && !$is_admin_invoice_or_payment && !$is_admin_settings) {
+    if (!$is_client && !$is_staff) {
         return;
     }
 
-    // On the settings page (including payment gateways), we only need to trigger license validation (and logs).
-    // No invoice context is available there.
-    if ($is_admin_settings) {
+    // On any settings/admin page (except actual invoices/payments area), we trigger license validation and load the license panel script/styles.
+    // If the license key input field is not on the page, the script returns immediately, making it extremely lightweight.
+    if ($is_staff && !in_array($controller, ['invoices', 'payments'], true)) {
         wompi_license_valid();
         echo '<link rel="stylesheet" type="text/css" href="' . site_url('wompi/callback/css') . '?v=' . WOMPI_MODULE_VERSION . '">';
         wompi_render_backend_license_panel();
@@ -270,7 +269,7 @@ function wompi_ui_scripts()
     $licensed = wompi_license_valid();
 
     // Map the expected variable for backward compatibility with views/scripts
-    $is_admin = $is_admin_invoice_or_payment;
+    $is_admin = $is_staff && in_array($controller, ['invoices', 'payments'], true);
 
     // Get invoice data (client and admin invoice views)
     $invoice_id = '';
@@ -445,25 +444,25 @@ function wompi_ui_scripts()
                 
                 <div class="wompi-logos-grid">
                     <div class="wompi-logo-item" data-tooltip="Débito seguro desde cualquier banco">
-                        <img class="wompi-logo-img" src="<?php echo $pse_logo; ?>" alt="PSE">
+                        <img class="wompi-logo-img" src="<?php echo $pse_logo; ?>" alt="PSE" loading="eager" fetchpriority="high">
                         <span class="wompi-logo-caption">PSE / Bancos</span>
                     </div>
                     <div class="wompi-logo-item" data-tooltip="Transferencia directa e inmediata">
-                        <img class="wompi-logo-img" src="<?php echo $bancolombia_logo; ?>" alt="Bancolombia">
+                        <img class="wompi-logo-img" src="<?php echo $bancolombia_logo; ?>" alt="Bancolombia" loading="eager" fetchpriority="high">
                         <span class="wompi-logo-caption">Bancolombia</span>
                     </div>
                     <div class="wompi-logo-item" data-tooltip="Paga rápido desde tu celular">
-                        <img class="wompi-logo-img" src="<?php echo $nequi_logo; ?>" alt="Nequi">
+                        <img class="wompi-logo-img" src="<?php echo $nequi_logo; ?>" alt="Nequi" loading="eager" fetchpriority="high">
                         <span class="wompi-logo-caption">Nequi</span>
                     </div>
                     <div class="wompi-logo-item" data-tooltip="Usa tu cuenta Daviplata en segundos">
-                        <img class="wompi-logo-img" src="<?php echo $daviplata_logo; ?>" alt="Daviplata">
+                        <img class="wompi-logo-img" src="<?php echo $daviplata_logo; ?>" alt="Daviplata" loading="eager" fetchpriority="high">
                         <span class="wompi-logo-caption">Daviplata</span>
                     </div>
                     <div class="wompi-logo-item" data-tooltip="Visa o Mastercard (Crédito/Débito)">
                         <div class="wompi-cards-wrapper">
-                            <img class="wompi-logo-img card-brand" src="<?php echo $visa_logo; ?>" alt="Visa">
-                            <img class="wompi-logo-img card-brand" src="<?php echo $mastercard_logo; ?>" alt="Mastercard">
+                            <img class="wompi-logo-img card-brand" src="<?php echo $visa_logo; ?>" alt="Visa" loading="eager" fetchpriority="high">
+                            <img class="wompi-logo-img card-brand" src="<?php echo $mastercard_logo; ?>" alt="Mastercard" loading="eager" fetchpriority="high">
                         </div>
                         <span class="wompi-logo-caption">Tarjetas</span>
                     </div>

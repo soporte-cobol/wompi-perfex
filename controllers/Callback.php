@@ -450,7 +450,7 @@ class Callback extends App_Controller
         $mime = get_mime_by_extension($logo_path);
         
         header('Content-Type: ' . $mime);
-        header('Cache-Control: public, max-age=604800, must-revalidate'); // Cache for 7 days
+        header('Cache-Control: public, max-age=31536000, immutable'); // Permanent caching for static logos
         header('Content-Length: ' . filesize($logo_path));
         
         readfile($logo_path);
