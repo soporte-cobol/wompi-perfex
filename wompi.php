@@ -135,7 +135,7 @@ function wompi_license_valid()
     // Auto-request trial if no license key is set
     wompi_maybe_request_trial();
 
-    $CI->load->library('wompi/Wompi_license'); // file: libraries/Wompi_license.php, class: Wompi_license
+    $CI->load->library(WOMPI_MODULE_NAME . '/Wompi_license'); // file: libraries/Wompi_license.php, class: Wompi_license
 
     // In admin payment gateway settings we prefer fresh validation to reduce confusion.
     $segment2 = $CI->uri->segment(2);
@@ -235,32 +235,39 @@ function wompi_license_admin_notice()
  */
 // Perfex >= 2.3 uses app_customers_footer() which triggers the 'app_customers_footer' hook.
 // Some older installs/themes may still fire 'app_clients_area_footer', so we support both.
-hooks()->add_action('app_customers_footer', 'wompi_ui_scripts');
-hooks()->add_action('app_clients_area_footer', 'wompi_ui_scripts');
-hooks()->add_action('admin_footer', 'wompi_ui_scripts');
+hooks()->add_action('app_customers_footer', 'wompi_client_ui_scripts');
+hooks()->add_action('app_clients_area_footer', 'wompi_client_ui_scripts');
 
-function wompi_ui_scripts()
+hooks()->add_action('admin_footer', 'wompi_admin_ui_scripts');
+hooks()->add_action('app_admin_footer', 'wompi_admin_ui_scripts');
+
+function wompi_admin_ui_scripts()
+{
+    $CI = &get_instance();
+    $controller = strtolower($CI->router->fetch_class() ?? '');
+
+    // Diagnostic log to identify the exact active file on the server and check hook triggering
+    echo '<script>console.log("🔍 [Wompi] Admin Footer hook triggered. Controller: ' . $controller . ' · File: ' . addslashes(str_replace('\\', '/', __FILE__)) . '");</script>';
+
+    if (in_array($controller, ['invoices', 'payments'], true)) {
+        wompi_client_ui_scripts(true);
+    } else {
+        wompi_license_valid();
+        echo '<link rel="stylesheet" type="text/css" href="' . site_url('wompi/callback/css') . '?v=' . WOMPI_MODULE_VERSION . '">';
+        wompi_render_backend_license_panel();
+    }
+}
+
+function wompi_client_ui_scripts($is_admin_preview = false)
 {
     $CI = &get_instance();
     
     // Diagnostic log to identify the exact active file on the server
     echo '<script>console.log("🔍 Wompi Active File: ' . addslashes(str_replace('\\', '/', __FILE__)) . '");</script>';
 
-    $controller = strtolower($CI->router->fetch_class() ?? '');
-    
     $is_client = in_array(strtolower($CI->uri->segment(1) ?? ''), ['invoice', 'invoices'], true);
-    $is_staff = function_exists('is_staff_logged_in') && is_staff_logged_in();
 
-    if (!$is_client && !$is_staff) {
-        return;
-    }
-
-    // On any settings/admin page (except actual invoices/payments area), we trigger license validation and load the license panel script/styles.
-    // If the license key input field is not on the page, the script returns immediately, making it extremely lightweight.
-    if ($is_staff && !in_array($controller, ['invoices', 'payments'], true)) {
-        wompi_license_valid();
-        echo '<link rel="stylesheet" type="text/css" href="' . site_url('wompi/callback/css') . '?v=' . WOMPI_MODULE_VERSION . '">';
-        wompi_render_backend_license_panel();
+    if (!$is_client && !$is_admin_preview) {
         return;
     }
 
@@ -269,7 +276,7 @@ function wompi_ui_scripts()
     $licensed = wompi_license_valid();
 
     // Map the expected variable for backward compatibility with views/scripts
-    $is_admin = $is_staff && in_array($controller, ['invoices', 'payments'], true);
+    $is_admin = $is_admin_preview;
 
     // Get invoice data (client and admin invoice views)
     $invoice_id = '';
