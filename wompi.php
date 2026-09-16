@@ -246,15 +246,13 @@ function wompi_ui_scripts()
     // Diagnostic log to identify the exact active file on the server
     echo '<script>console.log("🔍 Wompi Active File: ' . addslashes(str_replace('\\', '/', __FILE__)) . '");</script>';
 
-    $admin_folder = function_exists('get_admin_uri') ? strtolower(trim(get_admin_uri(), '/')) : 'admin';
-    $segment1 = strtolower($CI->uri->segment(1) ?? '');
-    $segment2 = strtolower($CI->uri->segment(2) ?? '');
+    $controller = strtolower($CI->router->fetch_class() ?? '');
     
-    $is_client = $segment1 === 'invoice' || $segment1 === 'invoices';
-    $is_admin  = $segment1 === $admin_folder && ($segment2 === 'invoices' || $segment2 === 'payments');
-    $is_admin_settings = $segment1 === $admin_folder && $segment2 === 'settings';
+    $is_client = in_array(strtolower($CI->uri->segment(1) ?? ''), ['invoice', 'invoices'], true);
+    $is_admin_settings = ($controller === 'settings' && is_staff_logged_in());
+    $is_admin_invoice_or_payment = in_array($controller, ['invoices', 'payments'], true) && is_staff_logged_in();
 
-    if (!$is_client && !$is_admin && !$is_admin_settings) {
+    if (!$is_client && !$is_admin_invoice_or_payment && !$is_admin_settings) {
         return;
     }
 
@@ -270,6 +268,9 @@ function wompi_ui_scripts()
     // Always inject the UI script so we can hide the amount field when Wompi is selected,
     // even if the license is currently invalid.
     $licensed = wompi_license_valid();
+
+    // Map the expected variable for backward compatibility with views/scripts
+    $is_admin = $is_admin_invoice_or_payment;
 
     // Get invoice data (client and admin invoice views)
     $invoice_id = '';
@@ -1157,22 +1158,22 @@ function wompi_render_backend_license_panel()
             return true;
         }
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                if (!initBackend()) {
-                    var tries = 0;
-                    var iv = setInterval(function() {
-                        if (initBackend() || tries++ > 30) clearInterval(iv);
-                    }, 200);
-                }
-            });
-        } else {
-            if (!initBackend()) {
-                var tries = 0;
-                var iv = setInterval(function() {
-                    if (initBackend() || tries++ > 30) clearInterval(iv);
-                }, 200);
+        // Continuous polling every 1 second to handle dynamic AJAX tab changes in Perfex CRM settings
+        setInterval(initBackend, 1000);
+        
+        // Also listen to Bootstrap tab show events to insert the panel immediately when the tab changes
+        try {
+            document.addEventListener('shown.bs.tab', initBackend);
+            if (typeof jQuery !== 'undefined') {
+                jQuery(document).on('shown.bs.tab', initBackend);
             }
+        } catch (e) {}
+
+        // Initial trigger
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initBackend);
+        } else {
+            initBackend();
         }
     })();
     </script>

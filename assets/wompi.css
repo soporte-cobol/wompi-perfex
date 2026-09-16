@@ -749,3 +749,9 @@ select[name^="settings[paymentmethod_wompi_"]:focus {
 #copy-tx-btn:active svg {
   transform: scale(0.9) rotate(-5deg);
 }
+
+@keyframes wompiProgress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+

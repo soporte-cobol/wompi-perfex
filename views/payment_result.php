@@ -77,7 +77,7 @@
     <div class="redirect-ui">
       <p class="redirect-text">Redirigiendo automáticamente...</p>
       <div class="progress-container">
-        <div class="progress-bar"></div>
+        <div class="progress-bar" style="animation: wompiProgress <?php echo (float)($redirect_delay ?? 5); ?>s linear forwards;"></div>
       </div>
     </div>
   <?php endif; ?>
