@@ -34,9 +34,12 @@ class Wompi_gateway extends App_gateway
         try {
             $CI = &get_instance();
             if ($CI && isset($CI->db) && $CI->db->conn_id && function_exists('wompi_license_valid')) {
-                if ($CI->uri->segment(1) === 'admin'
-                    && $CI->uri->segment(2) === 'settings'
-                    && $CI->input->get('group') === 'payment_gateways') {
+                $admin_folder = function_exists('get_admin_uri') ? strtolower(trim(get_admin_uri(), '/')) : 'admin';
+                $segment1 = strtolower($CI->uri->segment(1) ?? '');
+                $segment2 = strtolower($CI->uri->segment(2) ?? '');
+                if ($segment1 === $admin_folder
+                    && $segment2 === 'settings'
+                    && strtolower($CI->input->get('group') ?? '') === 'payment_gateways') {
                     wompi_license_valid();
                 }
             }

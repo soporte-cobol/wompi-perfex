@@ -246,21 +246,21 @@ function wompi_ui_scripts()
     // Diagnostic log to identify the exact active file on the server
     echo '<script>console.log("🔍 Wompi Active File: ' . addslashes(str_replace('\\', '/', __FILE__)) . '");</script>';
 
-    $admin_folder = function_exists('get_admin_uri') ? get_admin_uri() : 'admin';
+    $admin_folder = function_exists('get_admin_uri') ? strtolower(trim(get_admin_uri(), '/')) : 'admin';
+    $segment1 = strtolower($CI->uri->segment(1) ?? '');
+    $segment2 = strtolower($CI->uri->segment(2) ?? '');
     
-    $is_client = $CI->uri->segment(1) === 'invoice' || $CI->uri->segment(1) === 'invoices';
-    $is_admin  = $CI->uri->segment(1) === $admin_folder && ($CI->uri->segment(2) === 'invoices' || $CI->uri->segment(2) === 'payments');
-    $is_admin_payment_gateways = $CI->uri->segment(1) === $admin_folder
-        && $CI->uri->segment(2) === 'settings'
-        && $CI->input->get('group') === 'payment_gateways';
+    $is_client = $segment1 === 'invoice' || $segment1 === 'invoices';
+    $is_admin  = $segment1 === $admin_folder && ($segment2 === 'invoices' || $segment2 === 'payments');
+    $is_admin_settings = $segment1 === $admin_folder && $segment2 === 'settings';
 
-    if (!$is_client && !$is_admin && !$is_admin_payment_gateways) {
+    if (!$is_client && !$is_admin && !$is_admin_settings) {
         return;
     }
 
-    // On the payment gateways settings page, we only need to trigger license validation (and logs).
+    // On the settings page (including payment gateways), we only need to trigger license validation (and logs).
     // No invoice context is available there.
-    if ($is_admin_payment_gateways) {
+    if ($is_admin_settings) {
         wompi_license_valid();
         echo '<link rel="stylesheet" type="text/css" href="' . site_url('wompi/callback/css') . '?v=' . WOMPI_MODULE_VERSION . '">';
         wompi_render_backend_license_panel();
@@ -1094,10 +1094,19 @@ function wompi_render_backend_license_panel()
     <script>
     (function() {
         function initBackend() {
-            var input = document.querySelector('[name="settings[paymentmethod_wompi_license_key]"]');
-            if (!input) return;
+            var input = document.querySelector('[name="settings[paymentmethod_wompi_license_key]"]')
+                || document.querySelector('[name="paymentmethod_wompi_license_key"]')
+                || document.querySelector('[name*="paymentmethod_wompi_license_key"]');
+                
+            if (!input) return false;
+            
+            // Prevent multiple cards
+            if (document.querySelector('.wompi-lic-card')) {
+                return true; 
+            }
+
             var formGroup = input.closest('.form-group');
-            if (!formGroup) return;
+            if (!formGroup) return false;
 
             var card = document.createElement('div');
             card.className = 'wompi-lic-card';
@@ -1145,12 +1154,25 @@ function wompi_render_backend_license_panel()
                 </a>
             `;
             formGroup.parentNode.insertBefore(card, formGroup);
+            return true;
         }
 
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initBackend);
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!initBackend()) {
+                    var tries = 0;
+                    var iv = setInterval(function() {
+                        if (initBackend() || tries++ > 30) clearInterval(iv);
+                    }, 200);
+                }
+            });
         } else {
-            initBackend();
+            if (!initBackend()) {
+                var tries = 0;
+                var iv = setInterval(function() {
+                    if (initBackend() || tries++ > 30) clearInterval(iv);
+                }, 200);
+            }
         }
     })();
     </script>
