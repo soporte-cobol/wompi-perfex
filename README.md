@@ -14,14 +14,26 @@
 
 Este módulo ha sido rediseñado para ofrecer la mejor experiencia de usuario en Perfex CRM, combinando estética moderna con funcionalidad automatizada.
 
-### 💎 Características de la Interfaz
-| Característica | Beneficio para el Cliente |
+### 💎 Características de la Interfaz y UX Premium
+| Característica | Beneficio para el Cliente y Comercio |
 |---|---|
-| **🎨 Glassmorphism Design** | Interfaz moderna, traslúcida y elegante que transmite profesionalismo. |
-| **⚡ Auto-Trigger** | El checkout de Wompi se abre automáticamente, reduciendo la fricción. |
-| **🎉 Confetti Celebration** | Animación festiva en pagos exitosos que mejora la percepción de marca. |
-| **📱 100% Responsive** | Optimizado para que tus clientes paguen desde cualquier celular o tablet. |
-| **⏳ Carga Inteligente** | Resumen de factura visible mientras se conecta con la pasarela. |
+| **🎨 Glassmorphism Design** | Interfaz moderna, traslúcida y elegante con efectos de desenfoque y sombras premium. |
+| **⚡ Auto-Trigger & Breathing Pulse** | El checkout se inicia con una animación suave y un botón con respiración elástica que incita al clic de forma elegante. |
+| **🎯 Selector de Métodos de Pago** | Cuadrícula visual interactiva con insignias modernas y logotipos oficiales de **PSE, Bancolombia, Nequi, Daviplata, Visa, Mastercard, BNPL y más** para generar confianza instantánea. |
+| **🎉 Confetti & SVG Animados** | Celebración festiva con confeti dinámico y círculos de verificación/error en SVG animados al finalizar la transacción. |
+| **⏳ Barra de Progreso Dinámica** | Cuenta regresiva visual de 6 segundos sincronizada en la redirección automática para mantener informado al usuario. |
+| **✨ Efectos de Glow Contextual** | Un halo de luz difuminado posterior (verde para aprobado, rojo para declinado) que se adapta en tiempo real según el resultado de la transacción. |
+| **📋 Copiado Inteligente** | Botón interactivo de un solo clic junto al ID de transacción con confirmación visual de copiado al portapapeles. |
+| **📱 100% Responsivo y Fluido** | Transiciones de altura y opacidad pulidas para todos los formularios, adaptado a cualquier dispositivo móvil. |
+
+### 🔒 Robustez y Seguridad Empresarial
+| Característica | Garantía de Funcionamiento |
+|---|---|
+| **🛡️ Idempotencia con MySQL Locks** | Mecanismo de bloqueo robusto mediante `GET_LOCK()` a nivel de base de datos que previene la duplicación de transacciones en ejecuciones concurrentes de webhook y redirecciones. |
+| **🔒 Verificación SSL Estricta** | Configuración robusta de cURL (`CURLOPT_SSL_VERIFYPEER` y `CURLOPT_SSL_VERIFYHOST`) que protege la comunicación de callbacks contra ataques Man-in-the-Middle (MitM). |
+| **🩹 Periodo de Gracia ("Soft Fail")** | Mecanismo inteligente de tolerancia a fallos que permite operar el checkout sin interrupciones por hasta 72 horas si el servidor central de licencias experimenta caídas. |
+| **🌍 Traducción Completa (i18n)** | Todos los avisos del panel de administración modularizados en archivos de idioma estándar de Perfex, facilitando traducciones sin alterar el código fuente. |
+| **⚙️ Panel de Control Interactivo** | Tarjeta de licencia dinámica en el área de administración de Perfex con estatus de validación en tiempo real y botón de revalidación manual instantánea. |
 
 ---
 
@@ -266,37 +278,6 @@ No. Tu configuración (credenciales de Wompi, ajustes, etc.) se mantiene intacta
 | Extensión cURL | Habilitada |
 | HTTPS | Requerido en producción |
 | Conexión a internet | Requerida (para validación de licencia y webhook) |
-
----
-
-## 🗺️ Roadmap de Próximas Mejoras
-
-Este módulo se encuentra en constante evolución. Próximamente se integrarán las siguientes mejoras:
-
-### 🛠️ 1. Mejoras Técnicas y Robustez
-* **Idempotencia de Webhooks:** Mecanismo de bloqueo a nivel de base de datos/registro para evitar duplicación de cobros ante ejecuciones concurrentes de webhook y redirecciones.
-* **Verificación Estricta de SSL:** Incorporación de `CURLOPT_SSL_VERIFYPEER => true` en la consulta de transacciones (`Callback.php`) para mitigar ataques MitM.
-* **Periodo de Gracia de Licencia ("Soft Fail"):** Tolerancia a fallos de 48 a 72 horas para garantizar operatividad ininterrumpida si el servidor central de licencias (`control.cobol.com.co`) experimenta caídas.
-
-### 🎨 2. Mejoras de UI/UX y Estética Visual
-* **Botón de Pago Premium con Logotipos de Confianza:** Sustitución de la renderización nativa de Wompi por un botón de pago estilizado con gradientes modernos y animaciones fluidas, que integra directamente los logotipos oficiales de los medios de pago más reconocidos (PSE, Bancolombia, Nequi, Daviplata, Visa/Mastercard, etc.). Esto elimina la fricción y genera confianza inmediata en los clientes que no estén familiarizados con la marca Wompi.
-* **Indicadores SVG Animados:** Implementación de gráficos SVG fluidos en `payment_result.php` para ilustrar estados de éxito y rechazo.
-* **Barra de Progreso de Auto-redirección:** Indicador animado sincronizado con el contador de 6 segundos en la tarjeta traslúcida de resultado.
-* **Efectos de Brillo Dinámico (Glow Effects):** Proyección de un halo de luz posterior (verde o rojo) alineado con el estatus de la transacción.
-* **Transiciones de Entrada de Campos:** Animaciones suaves en los campos del formulario personalizado para pulir la experiencia general del usuario.
-* **Cuadrícula de Métodos de Pago Habilitados (Visual Badges & Logos):** Integración de una cuadrícula de selectores visuales de alta fidelidad e insignias modernas que incluyen los logotipos oficiales para cada método de pago soportado por Wompi en el checkout personalizado:
-  * **Tarjetas de Crédito o Débito:** Permite a tus clientes usar tarjetas de crédito o débito para realizar el pago.
-  * **Botón de Transferencia Bancolombia:** Permite a tus clientes usar sus cuentas de ahorros o corrientes Bancolombia para realizar el pago.
-  * **Nequi:** Ofrece a tus clientes la posibilidad de usar su cuenta Nequi desde su celular, para completar el pago.
-  * **PSE:** Permite a tus clientes realizar el pago usando su cuenta bancaria, de ahorros o corriente de cualquier banco colombiano.
-  * **Pago en efectivo en Corresponsales Bancarios Bancolombia:** Permite a tus clientes realizar el pago en efectivo en cualquiera de los más de 15.000 Corresponsales Bancarios Bancolombia.
-  * **PCOL:** Permite a tus clientes realizar el pago redimiendo Puntos Colombia.
-  * **BNPL BANCOLOMBIA:** Permite a tus clientes optar por un crédito de libre inversión de BANCOLOMBIA, sin intereses, dividido en 4 cuotas mensuales para transacciones superiores a $100,000 pesos.
-  * **DAVIPLATA:** Proporciona a tus clientes la opción de utilizar su cuenta Daviplata para realizar el pago de forma conveniente.
-  * **SU+ PAY:** Permite a los usuarios comprar productos o servicios y pagarlos en cuotas, facilitando la gestión financiera y el acceso a una amplia gama de productos.
-
-### 🌍 3. Internacionalización
-* **Traducciones de Avisos de Administración:** Traslado de las alertas del panel administrativo hardcodeadas en `wompi.php` al archivo `language/spanish/wompi_lang.php`, facilitando la adición de futuros idiomas.
 
 ---
 
