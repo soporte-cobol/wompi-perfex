@@ -1093,20 +1093,31 @@ function wompi_render_backend_license_panel()
     ?>
     <script>
     (function() {
+        console.log("🔍 [Wompi License] Script injected and active on this page.");
         function initBackend() {
             var input = document.querySelector('[name="settings[paymentmethod_wompi_license_key]"]')
                 || document.querySelector('[name="paymentmethod_wompi_license_key"]')
-                || document.querySelector('[name*="paymentmethod_wompi_license_key"]');
+                || document.querySelector('[name*="paymentmethod_wompi_license_key"]')
+                || document.querySelector('[name*="wompi_license_key"]')
+                || document.querySelector('[name*="wompi_license"]')
+                || document.querySelector('#paymentmethod_wompi_license_key')
+                || document.querySelector('input[id*="wompi"][id*="license"]');
                 
-            if (!input) return false;
+            if (!input) {
+                if (typeof window._wompi_log_count === 'undefined') window._wompi_log_count = 0;
+                if (window._wompi_log_count++ % 10 === 0) {
+                    console.log("🔍 [Wompi License] License Input element NOT found yet. Polling continues...");
+                }
+                return false;
+            }
+            
+            console.log("🔍 [Wompi License] License Input element FOUND in DOM:", input);
             
             // Prevent multiple cards
             if (document.querySelector('.wompi-lic-card')) {
+                console.log("🔍 [Wompi License] License Card already exists in DOM. Skipping injection.");
                 return true; 
             }
-
-            var formGroup = input.closest('.form-group');
-            if (!formGroup) return false;
 
             var card = document.createElement('div');
             card.className = 'wompi-lic-card';
@@ -1153,7 +1164,12 @@ function wompi_render_backend_license_panel()
                     <?php echo _l('wompi_backend_license_revalidate'); ?>
                 </a>
             `;
-            formGroup.parentNode.insertBefore(card, formGroup);
+            
+            // Ultra robust fallback insertion strategy to prevent failure if DOM structure differs
+            var container = input.closest('.form-group') || input.closest('.form-item') || input.closest('div') || input;
+            container.after(card);
+            
+            console.log("🔍 [Wompi License] License Card injected successfully after container:", container);
             return true;
         }
 
